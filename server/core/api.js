@@ -36,11 +36,45 @@ const { createHub } = require('../modules/apihub/service');
 const authRoutes = require('../modules/auth/routes');
 const settingsRoutes = require('../modules/settings/routes');
 const hubRoutes = require('../modules/apihub/routes');
+const chatsRoutes = require('../modules/chats/routes');
 
 /** 去除尾部多余斜杠,保证路由表按规范路径命中 */
 function normalizePath(pathname) {
   if (pathname.length > 1) pathname = pathname.replace(/\/+$/, '');
   return pathname || '/';
+}
+
+/** 段级 `:param` 匹配(chats 等模块使用路径参数):'GET /api/chats/conversations/:id' 命中
+ * 'GET /api/chats/conversations/abc',返回 { key, params };不命中返回 null。
+ * 段以 ':' 开头为捕获,否则必须逐字符相等。 */
+function matchParamRoute(routeKey, requestKey) {
+  const rp = routeKey.split(' ');
+  const kp = requestKey.split(' ');
+  if (rp.length !== 2 || kp.length !== 2) return null;
+  if (rp[0] !== kp[0]) return null;
+  const rSegs = rp[1].split('/');
+  const kSegs = kp[1].split('/');
+  if (rSegs.length !== kSegs.length) return null;
+  const params = {};
+  for (let i = 1; i < rSegs.length; i++) { // 从第 1 段起(第 0 段为空)
+    if (rSegs[i].charAt(0) === ':') {
+      params[rSegs[i].slice(1)] = decodeURIComponent(kSegs[i] || '');
+    } else if (rSegs[i] !== kSegs[i]) {
+      return null;
+    }
+  }
+  return { key: routeKey, params };
+}
+
+/** 精确匹配优先,其次 :param 模式匹配;断言失败原因供自定义路由冲突检测 */
+function lookupRoute(routes, key) {
+  if (routes[key]) return { route: routes[key], params: {} };
+  for (const k of Object.keys(routes)) {
+    if (k.indexOf(':') === -1) continue;
+    const hit = matchParamRoute(k, key);
+    if (hit) return { route: routes[k], params: hit.params };
+  }
+  return { route: null, params: {} };
 }
 
 /**
@@ -52,7 +86,8 @@ function createApiHandler(ctx) {
   // 内置路由表(静态);hub 自定义路由在请求时按配置动态解析
   const allRoutes = authRoutes(ctx)
     .concat(settingsRoutes(ctx))
-    .concat(hubRoutes(Object.assign({}, ctx, { hub })));
+    .concat(hubRoutes(Object.assign({}, ctx, { hub })))
+    .concat(chatsRoutes(ctx));
   const routes = {};
   allRoutes.forEach(function (r) {
     routes[r.method + ' ' + r.path] = r;
@@ -73,7 +108,8 @@ function createApiHandler(ctx) {
     let state = null;
     try {
       const key = req.method + ' ' + normalizePath(pathname);
-      const route = routes[key] || null;
+      const { route: routeEntry, params: routeParams } = lookupRoute(routes, key);
+      const route = routeEntry;
       state = await hub.loadAll();
       // 内置路由未命中时,尝试匹配自定义路由
       const custom =
@@ -106,7 +142,12 @@ function createApiHandler(ctx) {
       if (custom) {
         return hub.handleCustom(custom, req, res, sendJson);
       }
-      return route.handler(req, res, Object.assign({}, ctx, { session: auth.session }));
+      // :param 路由参数与上下文一起注入(现有路由第三参仍为 ctx,兼容不变)
+      return route.handler(
+        req,
+        res,
+        Object.assign({}, ctx, { session: auth.session, params: routeParams || {} })
+      );
     } finally {
       // 请求访问日志(配置驱动;失败绝不影响请求本身)
       try {

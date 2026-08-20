@@ -61,6 +61,120 @@ CREATE TABLE IF NOT EXISTS apihub_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_apihub_logs_ws ON apihub_logs (workspace_id, ts);`;
 
+/* ---------- Chats 聊天模块业务数据表(模块表,均含 workspace_id 列) ---------- */
+
+/** 聊天分组(多级树;父级 parent_id 空串表示根) */
+const CHATS_GROUPS_TABLE = `
+CREATE TABLE IF NOT EXISTS chats_groups (
+  id           TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  parent_id    TEXT NOT NULL DEFAULT '',
+  name         TEXT NOT NULL,
+  sort         INTEGER NOT NULL DEFAULT 0,
+  color        TEXT NOT NULL DEFAULT '',
+  icon         TEXT NOT NULL DEFAULT '',
+  created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_chats_groups_ws ON chats_groups (workspace_id, sort);`;
+
+/** 聊天彩色标签(扁平) */
+const CHATS_TAGS_TABLE = `
+CREATE TABLE IF NOT EXISTS chats_tags (
+  id           TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  name         TEXT NOT NULL,
+  color        TEXT NOT NULL DEFAULT '',
+  sort         INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_chats_tags_ws ON chats_tags (workspace_id, sort);`;
+
+/** 提示词(系统 Prompt 模板,内置分类:翻译/数学/工程/写作等) */
+const CHATS_PROMPTS_TABLE = `
+CREATE TABLE IF NOT EXISTS chats_prompts (
+  id           TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  name         TEXT NOT NULL,
+  category     TEXT NOT NULL DEFAULT '',
+  content      TEXT NOT NULL,
+  sort         INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_chats_prompts_ws ON chats_prompts (workspace_id, sort);`;
+
+/** 大模型供应商(内置目录按 key 复用;base_url 为空时用内置目录默认地址;api_key 密文落库) */
+const CHATS_PROVIDERS_TABLE = `
+CREATE TABLE IF NOT EXISTS chats_providers (
+  id           TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  key          TEXT NOT NULL,
+  name         TEXT NOT NULL,
+  type         TEXT NOT NULL DEFAULT 'openai', -- openai | anthropic | gemini
+  base_url     TEXT NOT NULL DEFAULT '',
+  api_key      TEXT NOT NULL DEFAULT '',      -- 密文 enc:v1:...(AES-256-GCM)
+  enabled      INTEGER NOT NULL DEFAULT 1,
+  models       TEXT NOT NULL DEFAULT '[]',    -- 模型列表 JSON(自动获取/手动维护)
+  sort         INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at   TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chats_providers_key ON chats_providers (workspace_id, key);`;
+
+/** MCP 服务器(streamable http / 传统 sse;tools 为 [{name,input_schema,enabled}] 快照 + 启用状态) */
+const CHATS_MCP_TABLE = `
+CREATE TABLE IF NOT EXISTS chats_mcp (
+  id           TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  name         TEXT NOT NULL,
+  protocol     TEXT NOT NULL DEFAULT 'http', -- http | sse
+  url          TEXT NOT NULL,
+  enabled      INTEGER NOT NULL DEFAULT 1,
+  tools        TEXT NOT NULL DEFAULT '[]',
+  sort         INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_chats_mcp_ws ON chats_mcp (workspace_id, sort);`;
+
+/** 会话(收藏 favorite / 置顶 pinned / 存档 archived / 分组 group_id / 标签 tag_ids JSON) */
+const CHATS_CONVERSATIONS_TABLE = `
+CREATE TABLE IF NOT EXISTS chats_conversations (
+  id           TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  title        TEXT NOT NULL DEFAULT '新对话',
+  group_id     TEXT NOT NULL DEFAULT '',
+  tag_ids      TEXT NOT NULL DEFAULT '[]',
+  favorite     INTEGER NOT NULL DEFAULT 0,
+  pinned       INTEGER NOT NULL DEFAULT 0,
+  archived     INTEGER NOT NULL DEFAULT 0,
+  provider_key TEXT NOT NULL DEFAULT '',
+  model        TEXT NOT NULL DEFAULT '',
+  prompt_id    TEXT NOT NULL DEFAULT '',
+  params       TEXT NOT NULL DEFAULT '{}',
+  web_search   TEXT NOT NULL DEFAULT '{}',
+  created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_chats_conv_ws ON chats_conversations (workspace_id, pinned DESC, updated_at DESC);`;
+
+/** 消息(角色/正文/多模态 parts/思考/工具调用/反馈);conversation 删除时级联清理 */
+const CHATS_MESSAGES_TABLE = `
+CREATE TABLE IF NOT EXISTS chats_messages (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  conversation_id TEXT NOT NULL,
+  role            TEXT NOT NULL,   -- system | user | assistant | tool
+  content         TEXT NOT NULL DEFAULT '',
+  parts           TEXT NOT NULL DEFAULT '[]',    -- 多模态附件 JSON
+  thinking        TEXT NOT NULL DEFAULT '',
+  tool_calls      TEXT NOT NULL DEFAULT '[]',    -- 工具调用记录 JSON
+  feedback        TEXT,                          -- up | down | NULL
+  usage           TEXT NOT NULL DEFAULT '{}',
+  error           TEXT NOT NULL DEFAULT '',
+  created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_chats_messages_conv ON chats_messages (conversation_id, id);`;
+
 const SCHEMA =
   APP_SETTINGS_TABLE +
   `
@@ -72,7 +186,14 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 );` +
   APIHUB_CONFIG_TABLE +
   APIHUB_HISTORY_TABLE +
-  APIHUB_LOGS_TABLE;
+  APIHUB_LOGS_TABLE +
+  CHATS_GROUPS_TABLE +
+  CHATS_TAGS_TABLE +
+  CHATS_PROMPTS_TABLE +
+  CHATS_PROVIDERS_TABLE +
+  CHATS_MCP_TABLE +
+  CHATS_CONVERSATIONS_TABLE +
+  CHATS_MESSAGES_TABLE;
 
 /** 旧版 app_settings(key 单主键,无 workspace_id)→ 新版(复合主键)迁移步骤 */
 const APP_SETTINGS_MIGRATION_SQL = [
@@ -110,6 +231,13 @@ module.exports = {
   APIHUB_CONFIG_TABLE,
   APIHUB_HISTORY_TABLE,
   APIHUB_LOGS_TABLE,
+  CHATS_GROUPS_TABLE,
+  CHATS_TAGS_TABLE,
+  CHATS_PROMPTS_TABLE,
+  CHATS_PROVIDERS_TABLE,
+  CHATS_MCP_TABLE,
+  CHATS_CONVERSATIONS_TABLE,
+  CHATS_MESSAGES_TABLE,
   APP_SETTINGS_MIGRATION_SQL,
   hasWorkspaceColumn,
   migrateAppSettings,

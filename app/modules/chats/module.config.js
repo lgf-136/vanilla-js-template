@@ -4,6 +4,7 @@ const manifest = {
   order: 4,
   i18nNamespace: 'chats',
   loadRoot: () => import('./index.js'),
+  deps: ['md.js', 'sse.js'],
   children: [],
   title: { 'zh-CN': '聊天', 'zh-TW': '聊天', en: 'Chats' },
   route: '/chats',

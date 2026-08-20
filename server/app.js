@@ -38,7 +38,7 @@ function makeNodeRequest(request) {
 function makeNodeResponse() {
   let status = 200;
   let headers = {};
-  let body = '';
+  let chunks = [];
   return {
     writeHead(nextStatus, nextHeaders) {
       status = nextStatus;
@@ -46,12 +46,27 @@ function makeNodeResponse() {
       this.statusCode = nextStatus;
       this.headersSent = true;
     },
+    // 流式响应:业务路由(res.write)与结束(res.end)累积的块统一经 ReadableStream 输出,
+    // 保证 SSE 转发到浏览器时保持渐进式渲染,而不改变各平台的统一 Response 出口。
+    write(chunk) {
+      if (chunk != null && chunk !== '') chunks.push(chunk);
+    },
     end(nextBody) {
-      body = nextBody == null ? '' : nextBody;
+      if (nextBody != null) chunks.push(nextBody);
     },
     statusCode: status,
     headersSent: false,
     toResponse() {
+      if (!chunks.length) return new Response('', { status, headers });
+      const body = new ReadableStream({
+        start(controller) {
+          const enc = new TextEncoder();
+          for (const c of chunks) {
+            controller.enqueue(typeof c === 'string' ? enc.encode(c) : c);
+          }
+          controller.close();
+        },
+      });
       return new Response(body, { status, headers });
     },
   };
