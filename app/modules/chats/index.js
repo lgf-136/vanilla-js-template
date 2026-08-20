@@ -1609,6 +1609,19 @@
       '</button>'
     );
   }
+  /** 面板字段区块:标题 + 内容 */
+  function fieldSection(label, content) {
+    return (
+      '<div class="ch-field-section">' +
+      '<div class="ch-field-label">' +
+      label +
+      '</div>' +
+      '<div class="ch-field-body">' +
+      content +
+      '</div>' +
+      '</div>'
+    );
+  }
   function renderRightBody() {
     if (state.rightTab === 'mcp') return renderMcpTab();
     if (state.rightTab === 'agent') return renderAgentTab();
