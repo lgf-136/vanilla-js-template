@@ -97,7 +97,7 @@
 
 ## 6. API 路由新增规范
 
-- 路由放在对应模块的 `routes.js`，业务逻辑放 `service.js`，**路由函数本身不写 SQL / 不写加解密逻辑**，只做参数校验 + 调用 service（现有 `auth` / `settings` 路由内联 SQL 属历史实现，新增路由遵循此约定）；
+- 路由放在对应模块的 `routes.js`，业务逻辑放 `service.js`，**路由函数本身不写 SQL / 不写加解密逻辑**，只做参数校验 + 调用 service（现有 `auth` 路由内联 SQL 属历史实现，新增路由遵循此约定）；
 - 所有需要鉴权的路由默认经过 `server/core/api.js` 的会话门禁（`x-auth-token`）校验，公开路由需显式标注并说明理由；
 - 只读 `GET` 接口需要考虑是否设置 `Cache-Control`（见 `ARCHITECTURE.md` 4.7 节缓存分层），避免每次都击穿到 DB。
 
