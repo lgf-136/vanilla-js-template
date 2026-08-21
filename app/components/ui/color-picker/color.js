@@ -259,7 +259,7 @@
     return cssTokenValue(NAME_HEX.accent);
   }
 
-module.exports = {
+export {
   clamp,
   parseHex,
   parseColor,
