@@ -38,7 +38,6 @@ const LEGACY_OVERSIZED = new Set([
   'app/modules/dashboard/index.js',
   'app/modules/settings/index.js',
   'app/modules/tasks/index.js',
-  'server/modules/apihub/service.js',
 ]);
 
 const BANNED_PATTERNS = [

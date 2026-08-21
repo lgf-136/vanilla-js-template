@@ -191,7 +191,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 
 ### 4.2 API 路由与鉴权
 
-`server/core/api.js` 汇总 `auth`、`settings` 和 `apihub` 路由，并为所有非登录接口执行会话门禁。路由文件只负责参数读取、状态码和调用 service；API Hub 的公开路由、Bearer、全局密码与 API Key 策略由 `server/modules/apihub/service.js` 统一计算。（现有 `auth` / `settings` 路由仍内联少量 SQL，属历史实现；新增路由按 routes 薄 + service 拆分约定编写。）
+`server/core/api.js` 汇总 `auth`、`settings` 和 `apihub` 路由，并为所有非登录接口执行会话门禁。路由文件只负责参数读取、状态码和调用 service；API Hub 的公开路由、Bearer、全局密码与 API Key 策略由 `server/modules/apihub/service.js` 统一计算（纯逻辑拆分在同目录 `hub-shared.js` 常量与请求/路径工具、`hub-config.js` 配置规范化与生效策略，service 保留依赖注入的 IO 编排）。（现有 `auth` / `settings` 路由仍内联少量 SQL，属历史实现；新增路由按 routes 薄 + service 拆分约定编写。）
 
 核心管理接口中只有 `POST /api/auth/login` 公开（它是换取会话令牌的入口）；API Hub 路由可按配置设为公开 / Bearer / 全局密码 / API Key 策略（由 `server/modules/apihub/service.js` 计算，同样绕过默认会话门禁），其余管理接口默认需要 `x-auth-token`。登录密码来自 `AUTH_PASSWORD`，不会写入数据库。服务端生成随机会话令牌，数据库只写入 `auth_sessions.token_hash`、过期时间和选项；客户端按 `localStorage` 或 `sessionStorage` 保存令牌。
 
