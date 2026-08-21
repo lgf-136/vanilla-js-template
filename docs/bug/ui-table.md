@@ -2,6 +2,7 @@
 
 > 覆盖：`App.ui.dataTable`（app/components/ui/data-table.js）及其前身 tasks 表格。
 > 组件特性：受控（全量消费 token）、可拓展（配置化接入），详见 ARCHITECTURE.md 2.3。
+> 注：2026-08 组件已迁入 `app/components/ui/data-table/index.js` 子目录，文中旧路径 `data-table.js` 指其迁移前前身。
 
 ---
 

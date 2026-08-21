@@ -5,6 +5,7 @@
 > `/*! tailwindcss v4.3.3 */`，无 `@source`/`@import`），只包含模板构建时扫描到的类；
 > 项目后续新增 JS 中的新类**不会自动编译**，缺失类按项目约定补到
 > `app/styles/utilities.css`（Tailwind v4 格式，在 bootstrap.js 中于 tokens.css 之后加载）。
+> 注：2026-08 公共组件已迁入 `app/components/ui/<comp>/index.js` 子目录，文中如出现旧的单文件组件路径均指其迁移前前身。
 
 ---
 

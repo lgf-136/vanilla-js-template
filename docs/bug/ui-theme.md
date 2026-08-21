@@ -2,6 +2,7 @@
 
 > 覆盖：强调色、基础色、风格、标题字体、菜单外观、硬编码颜色。
 > 相关铁律：AGENTS.md §1.11 受控组件铁律（不可违反）；ARCHITECTURE.md 3.7。
+> 注：2026-08 公共组件已迁入 `app/components/ui/<comp>/index.js` 子目录，文中旧的单文件路径（如 `profile.js`、`color-picker.js`）均指其迁移前前身。
 
 ---
 
