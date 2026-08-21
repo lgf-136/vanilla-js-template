@@ -101,3 +101,36 @@ just check 全绿；浏览器手测深链 #/apihub?r=<key> 自动选中。
    （grep 手写函数名在其他切片中的出现）。
 2. 跨域回调用「装配期注入」解耦（参照 registerPainters/setHashSelector），
    不要为图省事把函数搬进低层造成循环依赖。
+
+---
+
+## BUG-004: bootstrap 核心层改动态 import() 后裸说明符启动失败
+
+- 类型：ui-js
+- 严重度：高（应用完全无法启动）
+- 发现时间：2026-08-21
+- 修复提交：见分支（loadScripts 经 new URL(baseURI) 归一化）
+- 涉及文件：app/core/bootstrap.js（loadScripts）
+- 涉及组件：核心加载器
+
+### 现象
+`TypeError: Failed to resolve module specifier 'shared/escape.js'`，boot failed。
+
+### 根因
+动态 `import()` 的说明符解析遵循 ESM 规则：不带 `./`、`../`、`/` 前缀的路径是
+bare specifier（需 import map），而 AUTH_CORE/APP_CORE 清单沿用 `<script src>`
+时代的根相对写法（如 'shared/escape.js'）——经典注入可用，import() 直接 TypeError。
+
+### 修复过程
+loadScripts 单点归一化：`import(new URL(src, document.baseURI).href)`，
+对任意清单条目格式稳健；不逐条改清单，避免未来再犯。
+
+### 验证
+node --check 通过；浏览器刷新后 boot 正常。
+
+### 防坑指南
+1. `<script src>` 与 `import()` 的路径解析规则不同：迁移加载机制时，
+   所有说明符必须经 `new URL(src, document.baseURI)` 归一化或显式带 `./`。
+2. node --check 只验证语法不解析说明符，e2e 不经过浏览器引导——
+   加载器改动必须真实浏览器刷新验证一次。
+

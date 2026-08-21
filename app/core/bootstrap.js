@@ -56,7 +56,9 @@
   function loadScripts(list) {
     return list.reduce(function (promise, src) {
       return promise.then(function () {
-        return import(src);
+        // 动态 import 的相对说明符必须带 ./ 前缀；清单为根相对路径，
+        // 统一经 baseURL 归一化为绝对地址（bare specifier 会直接 TypeError）。
+        return import(new URL(src, document.baseURI).href);
       });
     }, Promise.resolve());
   }
