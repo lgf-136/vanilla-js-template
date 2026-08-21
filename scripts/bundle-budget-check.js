@@ -67,7 +67,15 @@ function main() {
     'core/api.js',
     'core/auth.js',
     'core/settings.js',
-    'components/ui/ui.js',
+    'components/ui/index.js',
+    'components/ui/core/index.js',
+    'components/ui/core/utils.js',
+    'components/ui/core/form.js',
+    'components/ui/core/dropdown.js',
+    'components/ui/core/radio.js',
+    'components/ui/core/feedback.js',
+    'components/ui/core/context-menu.js',
+    'components/ui/core/misc.js',
   ].map((file) => dir(file));
   const css = [join(DIST, 'app', 'styles', 'critical.css')];
 

@@ -12,7 +12,7 @@
     'app/core/api.js',
     'app/core/auth.js',
     'app/core/settings.js',
-    'app/components/ui/ui.js',
+    'app/components/ui/index.js',
   ];
 
   var APP_CORE = [
