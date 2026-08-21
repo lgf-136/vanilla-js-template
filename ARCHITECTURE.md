@@ -257,7 +257,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 | Cloudflare | `server/adapters/cloudflare.entry.js` + `wrangler.toml` | Workers Assets `dist/` | D1 |
 | Deno | `server/adapters/deno.entry.mjs` | Deno 动态静态服务 | Turso |
 
-部署 CLI 不写入依赖字段；按 `justfile` 中的 `npx <cli>@version` 命令临时调用。部署前运行 `npm run build` 和 `freebuff-deploy check`，生产密钥通过平台环境变量设置。
+部署 CLI 不写入依赖字段；按 `justfile` 中的 `npx <cli>@version` 命令临时调用。部署前运行 `npm run build`，生产密钥通过平台环境变量设置。
 
 ## 7. 验证命令
 

@@ -2,9 +2,9 @@
  * schema.js — 数据库建表语句(单一事实来源)
  * ------------------------------------------------------------
  * 所有运行时的建表 SQL 都以本文件为准:
- *   - Node(dev-server.js / api/index.js)经 server/db/index.js 引用
- *   - Deno(deno/main.js)经 createRequire 引用
- *   - Cloudflare Worker(worker.js)直接 import(避免重复维护 SCHEMA)
+ *   - Node(scripts/dev-server.js 与 server/adapters/node.entry.js)经 server/db/index.js 引用
+ *   - Vercel(api/server.js)与 Deno(server/adapters/deno.entry.mjs)经各自适配器引用
+ *   - Cloudflare Worker(server/adapters/cloudflare.entry.js)直接 import(避免重复维护 SCHEMA)
  *
  * app_settings 按 workspace_id 分片(复合主键),工作空间隔离规则见
  * ./scope.js;auth_sessions 是登录会话基础设施,与工作空间无关,保持全局。
@@ -61,15 +61,18 @@ CREATE TABLE IF NOT EXISTS apihub_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_apihub_logs_ws ON apihub_logs (workspace_id, ts);`;
 
-const SCHEMA =
-  APP_SETTINGS_TABLE +
-  `
+/** auth_sessions 建表语句(SCHEMA 与适配器旧结构迁移共用,单一来源) */
+const AUTH_SESSIONS_TABLE = `
 CREATE TABLE IF NOT EXISTS auth_sessions (
   token_hash TEXT PRIMARY KEY,  -- 会话令牌的 SHA-256 哈希,绝不存明文令牌
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   expires_at TEXT,
   note       TEXT
-);` +
+);`;
+
+const SCHEMA =
+  APP_SETTINGS_TABLE +
+  AUTH_SESSIONS_TABLE +
   APIHUB_CONFIG_TABLE +
   APIHUB_HISTORY_TABLE +
   APIHUB_LOGS_TABLE;
@@ -107,6 +110,7 @@ async function migrateAppSettings(db) {
 module.exports = {
   SCHEMA,
   APP_SETTINGS_TABLE,
+  AUTH_SESSIONS_TABLE,
   APIHUB_CONFIG_TABLE,
   APIHUB_HISTORY_TABLE,
   APIHUB_LOGS_TABLE,

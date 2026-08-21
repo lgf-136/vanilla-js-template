@@ -117,7 +117,7 @@ public/                   公开静态资源
 - Deno：使用 `server/adapters/deno.entry.mjs`
 - Docker：使用 `Dockerfile` 启动 Node 适配器
 
-部署前请配置 `AUTH_PASSWORD`、`ENCRYPTION_KEY` 以及对应数据库驱动所需的连接变量。可先运行 `freebuff-deploy check` 检查托管平台实际执行的安装与构建命令。
+部署前请配置 `AUTH_PASSWORD`、`ENCRYPTION_KEY` 以及对应数据库驱动所需的连接变量。
 
 ## 语言与模块约定
 

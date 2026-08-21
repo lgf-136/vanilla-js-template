@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { APP_SETTINGS_MIGRATION_SQL, hasWorkspaceColumn } = require('../schema');
+const { APP_SETTINGS_MIGRATION_SQL, AUTH_SESSIONS_TABLE, hasWorkspaceColumn } = require('../schema');
 const { GLOBAL_WORKSPACE_ID } = require('../scope');
 
 /** 参数绑定兼容 node:sqlite:仅接受 null/string/number/BigInt */
@@ -90,14 +90,8 @@ function migrateAuthSessions(db) {
   if (!hasToken || hasHash) return; // 新结构或表不存在
   // 会话是短生命周期数据,直接重建(旧会话全部失效,需重新登录)
   db.exec('DROP TABLE IF EXISTS auth_sessions');
-  db.exec(
-    'CREATE TABLE auth_sessions (' +
-      '  token_hash TEXT PRIMARY KEY,' +
-      "  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))," +
-      '  expires_at TEXT,' +
-      '  note TEXT' +
-      ')'
-  );
+  // 建表语句与 schema.js 共用同一常量(单一来源,红线 10);表刚被删除,IF NOT EXISTS 保持幂等
+  db.exec(AUTH_SESSIONS_TABLE);
 }
 
 /** 旧版 app_settings(key 单主键)→ 新版(workspace_id + key 复合主键)迁移 */

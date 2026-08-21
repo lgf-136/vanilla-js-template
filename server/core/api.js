@@ -1,8 +1,9 @@
 /* ============================================================
- * api/index.js — 共享 API 处理器(Node http req/res 风格)
+ * core/api.js — 共享 API 处理器(Node http req/res 风格)
  * ------------------------------------------------------------
- * 供 dev-server.js(本地 http 服务器)、Vercel 函数(api/index.js)
- * 与 Deno Deploy(deno/main.js 经 createRequire)共用,保证多处逻辑一致。
+ * 供 scripts/dev-server.js(本地开发)、server/adapters/node.entry.js(本地/Docker)、
+ * Vercel(api/server.js → server/adapters/vercel.entry.js)与
+ * Deno Deploy(server/adapters/deno.entry.mjs)共用,保证多处逻辑一致。
  *
  * 用法:
  *   const { createApiHandler, sendJson } = require('./server/core/api');
@@ -10,7 +11,7 @@
  *   await handleApi(req, res, pathname);
  *
  * 路由按域拆分在 ../modules/<module>/routes.js,createApiHandler 把它们收编进一张
- * "METHOD /path" 路由表。新增业务模块时,在 ./routes/ 下新增一个
+ * "METHOD /path" 路由表。新增业务模块时,在 ../modules/ 下新增一个
  * 导出路由数组的模块并在此注册即可,无需改动任何现有路由。
  *
  * 鉴权门禁(API Hub 统一管理):
