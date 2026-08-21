@@ -114,6 +114,32 @@ App.defineModule({
 
 Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({ id, sub, render })`。模块之间不 import 其它业务模块，只依赖 `App.ui`、`App.icon`、`App.settings`、`App.i18n` 与 `ctx`。
 
+### 2.3.1 模块内多文件组织（业务域拆分）
+
+实现层支持原生 ESM 后，单个模块不再要求单文件。触发阈值：实现预计超过 300 行（红线 12 警戒区）即按业务域拆分；拆分按职责切割，禁止机械按行数切。
+
+**前端标准分层**（实例：apihub 的 `hub-*.js`；文件前缀可按模块自定，关键是职责分层）：
+
+| 文件 | 职责 |
+|---|---|
+| `index.js` | 入口装配：defineModule、页面组装、渲染函数注入、初始化；**文件头必须写明本模块的拆分设计** |
+| `<prefix>-store.js` | 模块状态 + 数据加载/持久化 + 纯派生工具 |
+| `<prefix>-view.js` | 视图控制：renderFull / 局部重绘入口，渲染函数由 index 装配期注入（registerPainters 模式） |
+| `<prefix>-actions.js` | 配置/数据变更动作 |
+| 业务域文件 | 列表 / 构建器 / 弹窗 / 事件委托等，一个功能域一个文件 |
+
+依赖方向严格单向：`store ← 业务域/actions ← view(注入) ← events ← index`。跨域回调用装配期注入解耦（registerPainters / setHashSelector 模式），禁止为消除循环而把函数搬进低层造成循环依赖。
+
+页面型模块（实例：settings）采用「一设置项一文件」：`sp-common.js`（共享框架：子导航清单与区块布局）+ `sp-<item>.js`（导出 `page<Item>(ctx)`）；新增设置项 = 新建一个 sp 文件 + PAGES 注册一行 + children 补一项，互不影响其他页。
+
+硬性约束：
+
+1. **副作用模块必须被显式导入**：仅注册监听器、无导出被消费的文件（如事件委托），若无人 import 则 ESM 不求值——监听器全部失效且无任何报错。入口必须显式 `import './<id>-events.js'`。
+2. **拆分自检四项**：① 符号引用闭包完整——含「函数作为值传递」等非调用形态引用；② 从 index 沿 import 图遍历无孤儿文件（兼容副作用导入形态）；③ 行为零变更——切片与原文对照或既有测试全绿；④ 全部文件 ≤500 行。
+3. 手写文件的符号被其他切片调用时，用装配期注入收敛，不要反向 import 造成循环。
+
+服务端对应约定见第 4.2 节（routes 薄 + service IO 编排 + 纯逻辑兄弟文件）。
+
 ### 2.4 路由、设置与国际化
 
 应用使用 Hash 路由，支持 `/`、`/tasks`、`/apps`、`/chats`、`/docs/*`、`/apihub`、`/settings/*`；未知路径由 `App.ui.notFound()` 渲染 404。所有内容事件通过 `document` 委托绑定，重渲染后无需重复注册。
@@ -194,6 +220,15 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 `server/core/api.js` 汇总 `auth`、`settings` 和 `apihub` 路由，并为所有非登录接口执行会话门禁。路由文件只负责参数读取、状态码和调用 service；API Hub 的公开路由、Bearer、全局密码与 API Key 策略由 `server/modules/apihub/service.js` 统一计算（纯逻辑拆分在同目录 `hub-shared.js` 常量与请求/路径工具、`hub-config.js` 配置规范化与生效策略，service 保留依赖注入的 IO 编排）。（现有 `auth` 路由仍内联少量 SQL，属历史实现；新增路由按 routes 薄 + service 拆分约定编写。）
 
 核心管理接口中只有 `POST /api/auth/login` 公开（它是换取会话令牌的入口）；API Hub 路由可按配置设为公开 / Bearer / 全局密码 / API Key 策略（由 `server/modules/apihub/service.js` 计算，同样绕过默认会话门禁），其余管理接口默认需要 `x-auth-token`。登录密码来自 `AUTH_PASSWORD`，不会写入数据库。服务端生成随机会话令牌，数据库只写入 `auth_sessions.token_hash`、过期时间和选项；客户端按 `localStorage` 或 `sessionStorage` 保存令牌。
+
+**服务端模块内多文件组织**（与前端 2.3.1 对应，防止单大文件回潮）：
+
+- `routes.js` 薄路由：只做参数校验、状态码映射与调用 service，不写 SQL、不碰加解密；
+- `service.js` 工厂（`createXxxService(deps)`）收拢依赖注入的 IO 编排（db / encrypt / decrypt 闭包）；
+- 无 IO 纯逻辑（常量 / 校验 / 清洗 / 策略计算）外移同目录兄弟文件供 service 与测试直接复用（实例：apihub 的 `hub-shared.js` / `hub-config.js`），文件间 require 关系保持单向；
+- 错误约定：service 抛出带 `status` / `code` 的 Error，routes 统一捕获映射为 JSON 响应；
+- 对外导出面保持稳定：core/api 与测试只消费工厂与既定导出，拆分不改动任何调用方；
+- 拆分自检同 2.3.1 第 2 条（引用闭包含非调用形态、无孤儿、行为零变更、单文件 ≤500 行）。
 
 ### 4.3 数据库与工作空间
 
