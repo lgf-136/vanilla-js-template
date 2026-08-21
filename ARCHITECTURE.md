@@ -16,7 +16,7 @@
 .
 ├── index.html                 # PREPAINT + critical.css + bootstrap.js
 ├── app/
-│   ├── core/                  # bootstrap、app、auth、api、settings、i18n、interactions
+│   ├── core/                  # bootstrap、app/、settings/、i18n/（目录模块）、auth、api、interactions
 │   ├── components/
 │   │   ├── layout/            # Shell 的布局入口与 shell 渲染器
 │   │   └── ui/                # UI class 生成器、图标、头像、工作空间等公共能力
@@ -163,6 +163,24 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 5. **宿主回调走 create(opts)/pickerHtml(opts) 注入**（受控组件铁律延伸）：组件内不硬编码文案与业务行为。
 6. **路径接线三处**：bootstrap 核心清单、bundle-budget 首屏清单、build.test dist 断言；动态 import 说明符必须带 `./` 或经 baseURL 归一化。
 7. **拆分自检四项同 2.3.1**：引用闭包含非调用形态、import 图无孤儿、行为零变更、单文件 ≤500 行（理想 ≤250）。
+
+### 2.3.3 核心层目录化（app/core）
+
+内核三件套已目录化，bootstrap 清单指向各自目录的 `index.js`：
+
+| 目录 | 原文件 | 域文件 |
+|---|---|---|
+| `app/core/app/` | app.js(1295) | state(单例状态锚点) / registry / loaders / nav / shell-ui / render(含 .sp-content 滚动保持) / server-sync / workspaces / profiles / settings-bridge / actions / events + index 装配 |
+| `app/core/settings/` | settings.js(954) | storage / defaults / appearance / workspaces / profiles / state(读写聚合) + index |
+| `app/core/i18n/` | i18n.js(502) | dicts(纯数据词典) + index(运行时) |
+
+要点：
+
+1. **可变状态收敛**：跨文件共享的可变状态放最底层 state 文件，以 ESM live binding + setter 暴露（如 setSettings / resetOpenSubmenus），其他域经 setter 修改、直接读绑定取值——禁止各域自持副本；
+2. **依赖单向**：index ← events/actions/bridge ← server-sync ← render ← … ← state；新增域文件先想清楚落在哪一层；
+3. **归属以实际代码为准**：拆分前先测绘再落位（实例：服务端同步 pushSettingsToServer 实测在 app 内核而非 settings）；
+4. **App.* 挂载面逐字稳定**：index 装配负责全部挂载，diff 为空是验收标准（App 内核 17 键 / App.settings 44 键 / App.i18n 6 键）；
+5. 块注释内不得出现 `xxx-*/` 形态（会提前终止注释导致语法错误）。
 
 ### 2.4 路由、设置与国际化
 
