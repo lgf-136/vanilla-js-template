@@ -14,7 +14,7 @@
 - Deno Deploy Token（CLI/CI 部署时使用）；
 - Turso 数据库 URL 和 Token；
 - `ENCRYPTION_KEY`；
-- 可选的 `AUTH_PASSWORD_HASH`。
+- `AUTH_PASSWORD`（登录密码，服务器模式必填）。
 
 运行时变量：
 
@@ -22,10 +22,10 @@
 |---|---:|---|
 | `NODE_ENV` | 建议 `production` | 生产错误处理和密钥策略使用 |
 | `DB_DRIVER` | 建议 `turso` | 明确使用 Turso 适配器 |
-| `TURSO_DATABASE_URL` | 是 | Turso 数据库 URL |
-| `TURSO_AUTH_TOKEN` | 是 | Turso 访问 Token |
+| `DATABASE_URL` | 是 | Turso 数据库 URL |
+| `DATABASE_AUTH_TOKEN` | 是 | Turso 访问 Token |
 | `ENCRYPTION_KEY` | 是 | AES-GCM 信封加密主密钥 |
-| `AUTH_PASSWORD_HASH` | 否 | 预置 PBKDF2 管理密码哈希 |
+| `AUTH_PASSWORD` | 是 | 登录密码；服务器模式必填，不落库 |
 
 不要把这些值写入 `deno.entry.js`、仓库文件或部署命令中提交；在 Deno Deploy 项目设置中使用加密环境变量。
 
@@ -70,8 +70,8 @@ npx deployctl@latest deploy --help
 ```bash
 NODE_ENV=production \
 DB_DRIVER=turso \
-TURSO_DATABASE_URL="$TURSO_DATABASE_URL" \
-TURSO_AUTH_TOKEN="$TURSO_AUTH_TOKEN" \
+DATABASE_URL="$DATABASE_URL" \
+DATABASE_AUTH_TOKEN="$DATABASE_AUTH_TOKEN" \
 node scripts/db-migrate.js
 ```
 
@@ -92,7 +92,7 @@ Workflow 会执行源码检查、静态资源构建，然后调用 `deployctl` �
 |---|---|
 | `DENO_DEPLOY_TOKEN` | Deno Deploy CLI Token |
 
-Turso、`ENCRYPTION_KEY` 和 `AUTH_PASSWORD_HASH` 应配置在 Deno Deploy 项目环境中。Workflow 只使用 Deploy Token，不会把运行时数据库凭证写入仓库或日志。
+Turso、`ENCRYPTION_KEY` 和 `AUTH_PASSWORD` 应配置在 Deno Deploy 项目环境中。Workflow 只使用 Deploy Token，不会把运行时数据库凭证写入仓库或日志。
 
 ## 6. 本地 Deno 兼容性检查
 
@@ -126,6 +126,6 @@ curl -i https://<your-project>.deno.dev/app/locales/en.json
 
 - `DENO_DEPLOY_TOKEN` 无权限：重新创建只授予目标项目的 Deploy Token，并确认项目名正确。
 - 页面空白或静态文件 404：检查部署是否包含 `index.html`、`app/`、`public/` 和 JSON 语言包。
-- `TURSO_* 未配置`：Deno 项目环境变量未配置或变量作用域不是 Production。
+- `DATABASE_URL / DATABASE_AUTH_TOKEN 未配置`：Deno 项目环境变量未配置或变量作用域不是 Production。
 - `ENCRYPTION_KEY is required`：在 Deno Deploy Secret/Environment Variables 中添加后重新部署。
 - `node:sqlite` 不可用：这是当前静态 import 与 Deno runtime 的兼容性问题，需要先做代码级适配，不能靠 `DB_DRIVER=turso` 单独解决。

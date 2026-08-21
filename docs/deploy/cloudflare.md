@@ -12,14 +12,14 @@
 - Wrangler（通过 `npx` 临时调用，不写入项目依赖）；
 - 一个 D1 数据库；
 - `ENCRYPTION_KEY` Secret；
-- 可选的 `AUTH_PASSWORD_HASH` Secret；
+- `AUTH_PASSWORD` Secret（登录密码，服务器模式必填）；
 - 生产环境的 `database_id`。
 
 安全要求：
 
 - `database_id` 不是密码，可以写入 `wrangler.toml`；
-- API Token、`ENCRYPTION_KEY`、`AUTH_PASSWORD_HASH` 不得写入仓库；
-- 不要把原始管理密码写进环境变量，项目只接受 PBKDF2 哈希或首次访问时在密码页设置密码；
+- API Token、`ENCRYPTION_KEY`、`AUTH_PASSWORD` 不得写入仓库；
+- 登录密码经 `AUTH_PASSWORD` 环境变量/Secret 注入，服务端做常量时间比较（见 `server/core/auth/password.js`），不会落库；
 - 生产环境必须配置 `ENCRYPTION_KEY`，否则用户资料等敏感字段无法加密。
 
 ## 2. 检查并配置 `wrangler.toml`
@@ -62,7 +62,7 @@ Cloudflare Workers 与 Pages 的静态托管入口不同：
    - Node.js：22 或项目要求的兼容版本。
 4. 在 Worker/Pages Functions 的 Settings → Variables and Secrets 添加：
    - `ENCRYPTION_KEY`，类型选择 Secret；
-   - `AUTH_PASSWORD_HASH`，可选，类型选择 Secret。
+   - `AUTH_PASSWORD`，必填，类型选择 Secret。
 5. 确认 D1 绑定名称为 `DB`，并指向 `wrangler.toml` 中的数据库。
 6. 首次发布前完成一次远程 D1 migration（见下一节）。
 7. 发布后确认前端静态资源和 `/api/auth/status` 都由同一域名提供。
@@ -91,7 +91,7 @@ npx wrangler@latest deploy --config wrangler.toml
 
 ```bash
 printf '%s' "$ENCRYPTION_KEY" | npx wrangler@latest secret put ENCRYPTION_KEY --config wrangler.toml
-printf '%s' "$AUTH_PASSWORD_HASH" | npx wrangler@latest secret put AUTH_PASSWORD_HASH --config wrangler.toml
+printf '%s' "$AUTH_PASSWORD" | npx wrangler@latest secret put AUTH_PASSWORD --config wrangler.toml
 ```
 
 变量值应来自本地安全环境或 CI Secret；不要把命令输出、Token 或密钥提交到仓库。
@@ -144,7 +144,7 @@ curl -i https://<your-domain>/notes/list
 然后：
 
 1. 打开前端页面；
-2. 首次访问时设置管理密码，或使用预置的 `AUTH_PASSWORD_HASH` 登录；
+2. 使用 `AUTH_PASSWORD` 登录；
 3. 创建一条笔记和一个标签；
 4. 刷新页面并确认数据仍在 D1；
 5. 在设置 → 数据库中确认 `driver` 为 `d1`。

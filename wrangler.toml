@@ -17,6 +17,6 @@ binding = "DB"
 database_name = "vanilla-js-template"
 database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
 
-# 环境变量（敏感项走 wrangler secret put：ENCRYPTION_KEY / AUTH_PASSWORD_HASH）
+# 环境变量（敏感项走 wrangler secret put：ENCRYPTION_KEY / AUTH_PASSWORD）
 [vars]
 NODE_ENV = "production"

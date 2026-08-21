@@ -52,7 +52,7 @@ export const SETTING_KEYS = {
   PROFILE: 'settings:profile',
   /** 主题（system/light/dark）与语言 */
   DISPLAY: 'settings:display',
-  /** 管理密码哈希（PBKDF2，绝不明文） */
+  /** 保留键：预留给未来服务端管理密码哈希；当前实现使用 AUTH_PASSWORD 环境变量（见 ADR-005 修订） */
   PASSWORD_HASH: 'settings:auth:password_hash',
   /** 默认会话时长 */
   SESSION_DEFAULT: 'settings:auth:session_default',

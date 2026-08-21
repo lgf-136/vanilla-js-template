@@ -25,7 +25,7 @@ DB_PATH=/data/app.sqlite
 - Docker Engine 24+ 或兼容的 Docker 主机；
 - 一个持久化 Docker volume 或 VPS 磁盘目录；
 - `ENCRYPTION_KEY`；
-- 可选的 `AUTH_PASSWORD_HASH`。
+- `AUTH_PASSWORD`（登录密码，服务器模式必填）。
 
 生产安全要求：
 
@@ -65,7 +65,7 @@ docker run -d \
   -v vanilla-js-template-data:/data \
   -e NODE_ENV=production \
   -e ENCRYPTION_KEY="$ENCRYPTION_KEY" \
-  -e AUTH_PASSWORD_HASH="$AUTH_PASSWORD_HASH" \
+  -e AUTH_PASSWORD="$AUTH_PASSWORD" \
   vanilla-js-template:latest
 ```
 
@@ -96,10 +96,10 @@ docker run -d \
   -p 8080:8080 \
   -e NODE_ENV=production \
   -e DB_DRIVER=turso \
-  -e TURSO_DATABASE_URL="$TURSO_DATABASE_URL" \
-  -e TURSO_AUTH_TOKEN="$TURSO_AUTH_TOKEN" \
+  -e DATABASE_URL="$DATABASE_URL" \
+  -e DATABASE_AUTH_TOKEN="$DATABASE_AUTH_TOKEN" \
   -e ENCRYPTION_KEY="$ENCRYPTION_KEY" \
-  -e AUTH_PASSWORD_HASH="$AUTH_PASSWORD_HASH" \
+  -e AUTH_PASSWORD="$AUTH_PASSWORD" \
   vanilla-js-template:latest
 ```
 
@@ -108,8 +108,8 @@ docker run -d \
 ```bash
 NODE_ENV=production \
 DB_DRIVER=turso \
-TURSO_DATABASE_URL="$TURSO_DATABASE_URL" \
-TURSO_AUTH_TOKEN="$TURSO_AUTH_TOKEN" \
+DATABASE_URL="$DATABASE_URL" \
+DATABASE_AUTH_TOKEN="$DATABASE_AUTH_TOKEN" \
 node scripts/db-migrate.js
 ```
 
@@ -181,6 +181,6 @@ docker tag ghcr.io/<owner>/vanilla-js-template:v1.0.0 vanilla-js-template:curren
 - 容器启动后数据消失：没有挂载 `/data` volume；
 - `ENCRYPTION_KEY is required`：生产环境未注入加密主密钥；
 - 端口无法访问：确认映射为 `-p 8080:8080`，并检查 VPS 防火墙/反向代理；
-- Turso 驱动报缺少变量：同时配置 `DB_DRIVER=turso`、`TURSO_DATABASE_URL` 和 `TURSO_AUTH_TOKEN`；
+- Turso 驱动报缺少变量：同时配置 `DB_DRIVER=turso`、`DATABASE_URL` 和 `DATABASE_AUTH_TOKEN`；
 - 静态资源 404：确认请求经过 Node 入口，且镜像内包含 `index.html`、`app/` 和 `public/`；
 - 迁移失败：查看 `docker logs vanilla-js-template`，修复配置后重启，不要删除生产数据卷。

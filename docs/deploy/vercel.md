@@ -15,10 +15,10 @@
 
 - Vercel 账号和目标 Project；
 - Turso 数据库；
-- `TURSO_DATABASE_URL`；
-- `TURSO_AUTH_TOKEN`；
+- `DATABASE_URL`；
+- `DATABASE_AUTH_TOKEN`；
 - `ENCRYPTION_KEY`；
-- 可选的 `AUTH_PASSWORD_HASH`。
+- `AUTH_PASSWORD`（登录密码，服务器模式必填）。
 
 生产环境必须配置 `ENCRYPTION_KEY`。所有 Token、数据库凭证和加密主密钥都应通过 Vercel Environment Variables 保存，不要写入 `vercel.json`、源码或仓库中的 `.env` 文件。
 
@@ -36,10 +36,10 @@
 | 变量 | 生产环境 | 说明 |
 |---|---:|---|
 | `ENCRYPTION_KEY` | 必填 | AES-GCM 信封加密主密钥，必须是 Secret |
-| `AUTH_PASSWORD_HASH` | 可选 | PBKDF2 管理密码哈希；设置后不能在页面修改密码 |
+| `AUTH_PASSWORD` | 必填 | 登录密码；服务器模式必填，不落库 |
 | `DB_DRIVER` | 建议 `turso` | 显式指定 Turso 驱动，避免平台自动选型差异 |
-| `TURSO_DATABASE_URL` | 必填 | Turso 数据库 URL |
-| `TURSO_AUTH_TOKEN` | 必填 | Turso 访问 Token |
+| `DATABASE_URL` | 必填 | Turso 数据库 URL |
+| `DATABASE_AUTH_TOKEN` | 必填 | Turso 访问 Token |
 5. 保存后执行第一次部署。
 
 `vercel.json` 已负责 API 和 SPA rewrite，不要再创建第二套 `/api` 函数入口。若修改 rewrite，请同时验证 `/api/auth/status` 和 `/notes`。
@@ -53,8 +53,8 @@
 ```bash
 NODE_ENV=production \
 DB_DRIVER=turso \
-TURSO_DATABASE_URL="$TURSO_DATABASE_URL" \
-TURSO_AUTH_TOKEN="$TURSO_AUTH_TOKEN" \
+DATABASE_URL="$DATABASE_URL" \
+DATABASE_AUTH_TOKEN="$DATABASE_AUTH_TOKEN" \
 node scripts/db-migrate.js
 ```
 
@@ -98,7 +98,7 @@ Workflow 会依次执行源码检查、静态资源构建、生成临时 Vercel 
 | `VERCEL_ORG_ID` | Team/组织 ID，供 CI 生成项目链接 |
 | `VERCEL_PROJECT_ID` | Project ID，供 CI 生成项目链接 |
 
-Vercel 项目自己的运行时变量（Turso、`ENCRYPTION_KEY`、`AUTH_PASSWORD_HASH`）应在 Vercel Project Settings 中配置，而不是只配置在 GitHub Actions。部署 workflow 不会打印数据库凭证。
+Vercel 项目自己的运行时变量（Turso、`ENCRYPTION_KEY`、`AUTH_PASSWORD`）应在 Vercel Project Settings 中配置，而不是只配置在 GitHub Actions。部署 workflow 不会打印数据库凭证。
 
 ## 6. 验证
 
@@ -118,7 +118,7 @@ curl -i https://<your-project>.vercel.app/api/auth/status
 
 1. 根路径能加载 Nova 前端；
 2. `/notes`、`/notes/list` 刷新后仍由 SPA fallback 提供页面；
-3. 首次访问设置管理密码，或使用 `AUTH_PASSWORD_HASH` 登录；
+3. 使用 `AUTH_PASSWORD` 登录；
 4. 创建笔记后刷新页面，确认数据来自 Turso；
 5. 设置 → 数据库中显示 `driver: "turso"`。
 
@@ -131,7 +131,7 @@ curl -i https://<your-project>.vercel.app/api/auth/status
 
 ## 8. 常见问题
 
-- `TURSO_DATABASE_URL / TURSO_AUTH_TOKEN 未配置`：检查变量是否添加到了当前部署环境，并确认 `DB_DRIVER=turso`。
+- `DATABASE_URL / DATABASE_AUTH_TOKEN 未配置`：检查变量是否添加到了当前部署环境，并确认 `DB_DRIVER=turso`。
 - `/api/*` 返回前端 HTML：检查 `vercel.json` 的 `/api/(.*)` rewrite 和 `api/server.js` 是否存在。
 - 根路径正常、嵌套路由刷新 404：确认 SPA rewrite 仍为 `/((?!api/).*)` 到 `/index.html` 的配置。
 - `ENCRYPTION_KEY is required in production`：在 Vercel Production 环境配置 Secret 后重新部署。
