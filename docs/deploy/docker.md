@@ -69,7 +69,7 @@ docker run -d \
   vanilla-js-template:latest
 ```
 
-`DB_DRIVER=sqlite`、`DB_PATH=/data/app.sqlite` 和 `PORT=8080` 已由镜像设置，不需要重复传入。首次启动时容器会自动迁移数据库；重建容器时只要保留 `vanilla-js-template-data`，数据就不会丢失。
+`DB_DRIVER=sqlite`、`SQLITE_PATH=/data/app.sqlite` 和 `PORT=8080` 已由镜像设置，不需要重复传入。首次启动时容器会自动迁移数据库；重建容器时只要保留 `vanilla-js-template-data`，数据就不会丢失。
 
 也可以绑定 VPS 目录：
 
@@ -174,7 +174,7 @@ docker tag ghcr.io/<owner>/vanilla-js-template:v1.0.0 vanilla-js-template:curren
 
 ## 8. Docker Compose 说明与常见问题
 
-当前仓库有 `just deploy-docker` 命令，但没有提交 `docker-compose.yml`。因此默认使用上面的 `docker build` + `docker run` 命令；不要直接执行 `just deploy-docker`，除非你已在本地安全地补充 Compose 编排文件。
+`just deploy-docker` 与上面的命令一致：直接 `docker build` + `docker run`（仓库不提交 Compose 编排文件）。重复执行会先移除同名旧容器再启动，数据保留在 `vanilla-js-template-data` 卷中。
 
 常见问题：
 

@@ -10,7 +10,7 @@ COPY . .
 ENV NODE_ENV=production \
     PORT=8080 \
     DB_DRIVER=sqlite \
-    DB_PATH=/data/app.sqlite
+    SQLITE_PATH=/data/app.sqlite
 
 # 本地持久卷（自动创建 data 目录）
 RUN mkdir -p /data

@@ -74,7 +74,19 @@ deploy-vercel:
 deploy-deno:
     npx deployctl@latest deploy --project=vanilla-js-template server/adapters/deno.entry.mjs
 
-# Docker / VPS（镜像默认本地 SQLite 持久卷，可用 DB_DRIVER=turso 切换）
+# Docker / VPS（镜像默认本地 SQLite 持久卷，可用 DB_DRIVER=turso 切换；
+# 仓库不含 docker-compose.yml，故直接使用 docker build/run，见 docs/deploy/docker.md）
 deploy-docker:
-    docker compose build
-    docker compose up -d
+    docker build -t vanilla-js-template:latest .
+    docker rm -f vanilla-js-template 2>/dev/null || true
+    docker volume create vanilla-js-template-data >/dev/null
+    docker run -d \
+        --name vanilla-js-template \
+        --restart unless-stopped \
+        -p 8080:8080 \
+        -v vanilla-js-template-data:/data \
+        -e NODE_ENV=production \
+        -e SQLITE_PATH=/data/app.sqlite \
+        -e ENCRYPTION_KEY="$ENCRYPTION_KEY" \
+        -e AUTH_PASSWORD="$AUTH_PASSWORD" \
+        vanilla-js-template:latest
