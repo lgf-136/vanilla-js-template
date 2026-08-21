@@ -24,7 +24,6 @@ const MAX_LINES = 500;
 const VENDORED_PREFIX = 'app/lib/';
 /** 存量超 500 行的技术债清单：拆分后必须从此处移除，禁止新增条目 */
 const LEGACY_OVERSIZED = new Set([
-  'app/components/layout/shell.js',
             'app/modules/chats/index.js',
   'app/modules/dashboard/index.js',
   'app/modules/tasks/index.js',

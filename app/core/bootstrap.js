@@ -24,7 +24,7 @@
     'app/components/ui/tag-picker/index.js',
     'app/components/ui/data-table/index.js',
     'app/components/ui/avatar/index.js',
-    'app/components/layout/shell.js',
+    'app/components/layout/shell/index.js',
     'app/core/app/index.js',
     'app/components/ui/workspace/index.js',
     'app/components/ui/profile/index.js',
