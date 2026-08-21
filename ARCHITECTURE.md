@@ -92,7 +92,7 @@ const manifest = {
   i18nNamespace: 'dashboard',
   loadRoot: () => import('./index.js'),
   load: 'index.js',
-  css: 'module.css',
+  css: 'module.css',     // 支持字符串或数组：数组按序加载（<link> 插入顺序即层叠优先级），超 500 行的模块样式须按职责拆分（红线 12）
   i18nFile: 'i18n.js',
   children: [],          // 子菜单（docs/settings 有值，其余为空数组）
   deps: ['app/lib/chart.umd.js'], // 可选：模块加载前预注入的脚本依赖（dashboard 使用）

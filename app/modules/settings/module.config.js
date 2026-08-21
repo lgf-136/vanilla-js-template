@@ -45,7 +45,7 @@ const manifest = {
   title: { 'zh-CN': '设置', 'zh-TW': '設定', en: 'Settings' },
   route: '/settings',
   load: 'index.js',
-  css: 'module.css',
+  css: ['module.css', 'module-controls.css', 'module-pages.css'],
   i18nFile: 'i18n.js',
   children,
 };

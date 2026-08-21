@@ -1,0 +1,268 @@
+/* apihub 模块样式（module-list.css）——路由行/方法列/令牌徽章/列表头部，随 module.css 按序加载 */
+/* ---------- 路由行 ---------- */
+.hub-route {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+.hub-route:hover,
+.hub-route.is-selected {
+  background: var(--accent);
+  border-color: var(--border);
+}
+/* 方法列:请求方式按钮 + 下方左对齐的公开开关 */
+.hub-route-mcol {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3125rem;
+}
+.hub-method {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.875rem;
+  height: 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--primary-foreground);
+}
+.hub-method-get    { background: var(--hub-method-get); }
+.hub-method-post   { background: var(--hub-method-post); }
+.hub-method-put    { background: var(--hub-method-put); }
+.hub-method-patch  { background: var(--hub-method-patch); }
+.hub-method-delete { background: var(--hub-method-delete); }
+.hub-method-head   { background: var(--hub-method-head); }
+.hub-method-options{ background: var(--hub-method-options); }
+.hub-route-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+}
+.hub-route-title {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.hub-route-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hub-route-badge {
+  flex: none;
+  font-size: 0.625rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 0.0625rem 0.375rem;
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+.hub-route-badge.is-custom {
+  color: var(--primary);
+  border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+}
+.hub-route-desc {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hub-route-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.1875rem;
+  margin-top: 0.1875rem;
+}
+.hub-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 9rem;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+  background: var(--muted);
+  border-radius: 9999px;
+  padding: 0.0625rem 0.4375rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.hub-chip svg {
+  width: 0.6875rem;
+  height: 0.6875rem;
+  flex: none;
+}
+/* ---------- 鉴权令牌徽章(图标 + 颜色,悬停提示) ---------- */
+.hub-token {
+  --tokc: var(--hub-tag);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  border-radius: 0.375rem;
+  color: var(--tokc);
+  background: color-mix(in oklab, var(--tokc) 12%, transparent);
+  border: 1px solid color-mix(in oklab, var(--tokc) 28%, transparent);
+  cursor: help;
+}
+.hub-token svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.hub-token.is-public {
+  color: var(--hub-method-get);
+}
+.hub-token.is-fav {
+  color: var(--hub-method-put);
+}
+.hub-token.is-pin {
+  color: var(--primary);
+}
+/* ---------- 路由行:⋯ 按钮(悬停显示,打开右键菜单) ---------- */
+.hub-route-ctx {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding-top: 0.125rem;
+}
+.hub-route-more {
+  opacity: 0;
+}
+.hub-route:hover .hub-route-more,
+.hub-route:focus-within .hub-route-more {
+  opacity: 1;
+}
+.hub-route-more:hover {
+  background: var(--background);
+  color: inherit;
+}
+.hub-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.5rem;
+  padding: 0 0.5rem;
+  border-radius: 0.375rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+}
+.hub-action-btn:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.hub-action-btn.is-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.hub-action-btn.is-primary:hover {
+  background: color-mix(in oklab, var(--primary) 85%, var(--color-black));
+}
+.hub-action-btn svg {
+  width: 0.8125rem;
+  height: 0.8125rem;
+}
+
+/* ---------- 列表头部(搜索 + 筛选) ---------- */
+.hub-list-toolbar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.625rem 0.625rem 0.375rem;
+  border-bottom: 1px solid var(--border);
+}
+.hub-search {
+  display: flex;
+  align-items: center;
+}
+.hub-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+.hub-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.5rem;
+  padding: 0 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  cursor: pointer;
+  outline: none;
+}
+.hub-filter-chip:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.hub-filter-chip.is-on {
+  background: var(--foreground);
+  border-color: var(--foreground);
+  color: var(--background);
+}
+.hub-filter-chip svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.hub-filter-chip {
+  position: relative;
+}
+.hub-filter-badge {
+  position: absolute;
+  top: -0.375rem;
+  right: -0.375rem;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background: var(--hub-danger);
+  color: var(--primary-foreground);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1rem;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--background);
+}
+.hub-dd-count {
+  margin-left: auto;
+  padding: 0 0.375rem;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  line-height: 1.125rem;
+}

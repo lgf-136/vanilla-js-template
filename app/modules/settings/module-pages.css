@@ -1,0 +1,104 @@
+/* settings 模块样式（module-pages.css）——显示页/外观页专属规则，随 module.css 按序加载 */
+/* ---------- 显示页(侧边栏显示控制) ---------- */
+.sp-display-group {
+  margin-bottom: 2rem;
+}
+.sp-display-group h4 {
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.sp-display-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.sp-display-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  background: var(--card);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.sp-display-item:not(.is-locked):hover {
+  background: var(--accent);
+}
+.sp-display-item.is-hidden .sp-item-icon {
+  color: var(--muted-foreground);
+}
+.sp-display-item.is-hidden .sp-item-title {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+.sp-display-item .sp-item-icon {
+  flex: none;
+  color: var(--foreground);
+  width: 1rem;
+  height: 1rem;
+}
+.sp-display-item .sp-item-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+.sp-display-item .sp-item-title {
+  flex: 1;
+}
+.sp-display-item .sp-lock {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.sp-lock svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.sp-display-item.is-locked {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.sp-display-item.is-sub {
+  margin-left: 1.75rem;
+  width: calc(100% - 1.75rem);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-weight: 400;
+}
+.sp-display-item.is-sub .sp-item-icon {
+  color: var(--muted-foreground);
+}
+.sp-display-hint {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+/* ---------- 外观页:区块容器(间距);radio-group 卡片样式统一用 app.css 的 .rg-* ---------- */
+.sp-opt-group {
+  margin-bottom: 1.5rem;
+}
+/* ---------- 补充 ---------- */
+.sp-form > button {
+  align-self: flex-start;
+}
+.sp-switch-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}

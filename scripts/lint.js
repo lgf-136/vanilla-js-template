@@ -5,7 +5,7 @@
  *    私有转义函数（统一收敛 shared/escape.js，红线 13）
  *  - 样式规则：app/ 下的 JS/CSS 禁止硬编码十六进制颜色（tokens.css 除外；rgb/hsl/oklch 靠评审）
  *  - 模块边界：app/modules/<A>/ 内部禁止 import app/modules/<B>/ 的文件（红线 4）
- *  - 行数预算：单文件 ≤ 500 行（.js；存量超标文件在 LEGACY_OVERSIZED 挂账，只许减少不许增加，红线 12）
+ *  - 行数预算：单文件 ≤ 500 行（.js 与 .css；存量超标 .js 在 LEGACY_OVERSIZED 挂账，只许减少不许增加，红线 12）
  *  - 格式：禁止 Tab 缩进
  */
 
@@ -96,8 +96,8 @@ function checkBanned(file) {
       errors.push(`禁止 Tab 缩进 → ${rel(file)}`);
     }
     checkModuleBoundary(file, src);
-    checkLineBudget(file, src);
   }
+  checkLineBudget(file, src);
   // 样式硬编码颜色检查（app/ 下 JS 内嵌样式与 CSS 文件）。
   // token 样式表与模板随附的静态 SVG/Chart.js 资源本身就是颜色定义，
   // 不应被当作业务组件样式重复改写。
@@ -129,11 +129,14 @@ function checkModuleBoundary(file, src) {
   }
 }
 
-/** 红线 12：单文件 ≤ 500 行（.js），存量超标文件挂账 LEGACY_OVERSIZED */
+/** 红线 12：单文件 ≤ 500 行（.js 与 .css），存量超标文件挂账 LEGACY_OVERSIZED */
 function checkLineBudget(file, src) {
-  if (!file.endsWith('.js')) return;
+  const isJs = file.endsWith('.js');
+  if (!isJs && !file.endsWith('.css')) return;
   const relPosix = rel(file).split(sep).join('/');
   if (relPosix.startsWith(VENDORED_PREFIX) || LEGACY_OVERSIZED.has(relPosix)) return;
+  // tokens.css 是模板预构建的 Tailwind v4 产物（自动生成代码，红线 12 豁免；见 docs/bug/ui-css.md）
+  if (!isJs && relPosix === 'app/styles/tokens.css') return;
   const lines = src.split('\n').length;
   if (lines > MAX_LINES) {
     errors.push(`单文件 ${lines} 行超过 ${MAX_LINES} 行上限，必须按业务职责拆分 → ${rel(file)}`);

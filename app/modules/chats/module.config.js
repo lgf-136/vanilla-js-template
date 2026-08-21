@@ -8,7 +8,7 @@ const manifest = {
   title: { 'zh-CN': '聊天', 'zh-TW': '聊天', en: 'Chats' },
   route: '/chats',
   load: 'index.js',
-  css: 'module.css',
+  css: ['module.css', 'module-conversation.css'],
   i18nFile: 'i18n.js',
 };
 

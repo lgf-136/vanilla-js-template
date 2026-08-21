@@ -144,7 +144,11 @@
   function ensureModuleLoaded(m, child) {
     var meta = m.meta;
     var tasks = [];
-    if (meta.css) tasks.push(loadCss(moduleDir(meta.id) + meta.css));
+    // meta.css 支持字符串或数组(按序加载,数组顺序即 <link> 插入顺序,保证层叠优先级)
+    var cssFiles = Array.isArray(meta.css) ? meta.css : meta.css ? [meta.css] : [];
+    cssFiles.forEach(function (f) {
+      tasks.push(loadCss(moduleDir(meta.id) + f));
+    });
     (meta.deps || []).forEach(function (src) {
       tasks.push(loadScript(src));
     });
