@@ -174,7 +174,7 @@ docker tag ghcr.io/<owner>/vanilla-js-template:v1.0.0 vanilla-js-template:curren
 
 ## 8. Docker Compose 说明与常见问题
 
-当前仓库有 `just deploy:docker` 命令，但没有提交 `docker-compose.yml`。因此默认使用上面的 `docker build` + `docker run` 命令；不要直接执行 `just deploy:docker`，除非你已在本地安全地补充 Compose 编排文件。
+当前仓库有 `just deploy-docker` 命令，但没有提交 `docker-compose.yml`。因此默认使用上面的 `docker build` + `docker run` 命令；不要直接执行 `just deploy-docker`，除非你已在本地安全地补充 Compose 编排文件。
 
 常见问题：
 

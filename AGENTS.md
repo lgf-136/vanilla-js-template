@@ -44,7 +44,7 @@
 
 > **元规则**：遇到无法满足红线的场景，停下来询问，禁止自行变通绕过。
 
-1. **禁止安装任何第三方运行时依赖**。`package.json` 的 `dependencies` / `devDependencies` 必须始终为 `{}`。平台部署 CLI（`wrangler` `vercel` `deno` `docker`）作为外部工具通过 `npx <cli>@版本`（如 `npx wrangler@3`；也可用 `@latest`，见 `justfile` 的 `deploy:*` 目标）临时调用，不写入依赖字段。同理，**禁止从 CDN 加载任何脚本/样式/字体**（`<script src="https://...">` 等外链同样视为第三方运行时代码）。
+1. **禁止安装任何第三方运行时依赖**。`package.json` 的 `dependencies` / `devDependencies` 必须始终为 `{}`。平台部署 CLI（`wrangler` `vercel` `deno` `docker`）作为外部工具通过 `npx <cli>@版本`（如 `npx wrangler@3`；也可用 `@latest`，见 `justfile` 的 `deploy-*` 目标）临时调用，不写入依赖字段。同理，**禁止从 CDN 加载任何脚本/样式/字体**（`<script src="https://...">` 等外链同样视为第三方运行时代码）。
 2. **禁止使用浏览器内置弹窗/控件默认视觉**：`window.alert()` `window.confirm()` `window.prompt()`、原生 `<dialog>`/`<select>` 默认样式一律禁止，必须使用 `app/components/ui/` 的自研组件（`App.ui.*` 函数式渲染：`buttonClass` `dropdownContentClass` `toast` `radio` 等，见 `ARCHITECTURE.md` 2.3）。
 3. **禁止硬编码颜色/圆角/间距字面量**。颜色与圆角一律通过 `app/styles/tokens.css` 定义的 CSS 变量消费，新增视觉样式前先检查 token 是否已存在，缺失则先在 `tokens.css` 补充（hex 字面量由 `just lint` 强制检查；rgb/hsl/oklch/命名色靠评审把关）；间距优先使用 `--spacing` 刻度（`calc(var(--spacing) * N)`），新增代码不得写死 rem/px 间距。
 4. **禁止跨模块直接 import**。`app/modules/<A>` 不得 import `app/modules/<B>` 内部任何文件。确需复用，先把代码"上移"到 `app/components/ui`（组件/渲染函数）或 `shared/`（纯函数/常量），再各自引用（`just lint` 自动扫描违规）。
@@ -71,9 +71,9 @@
 3. 在 `app/modules/registry.js` 补一行 `import()` 登记；
 4. 新建 `server/modules/<id>/routes.js`（必要时配 `service.js`），在 `server/core/api.js` 的路由汇总处登记（同样只加一行，不改其它模块路由）；
 5. 若需要新表：在 `server/db/schema.js` 追加 `CREATE TABLE IF NOT EXISTS`，表名遵循 `[module]_[entity]`；
-6. 在 `i18n.js` 补齐三语言（`en` / `zh-CN` / `zh-TW` 三个对象），跑 `just i18n:check` 确认三语言 key 对齐；
+6. 在 `i18n.js` 补齐三语言（`en` / `zh-CN` / `zh-TW` 三个对象），跑 `just i18n-check` 确认三语言 key 对齐；
 7. 补单元测试（源码同目录 `*.test.js`），跑 `just test`；
-8. 跑 `just lint` 与 `just build:budget` 确认不超体积预算；
+8. 跑 `just lint` 与 `just build-budget` 确认不超体积预算；
 9. 提交前对照第 9 节"提交前自检清单"。
 
 ## 3. 新增一个"子模块"（二级菜单）标准流程
@@ -105,22 +105,24 @@
 
 1. 在对应模块 `i18n.js` 的 `window.__moduleI18n['<id>']` 中新增 key（命名空间 `<module>.<scope>.<name>`）；
 2. 同步补齐 `en` / `zh-CN` / `zh-TW` 三个语言对象的同一 key；
-3. 跑 `just i18n:check`，确认三语言 key 集合完全一致，缺一个都视为失败（脚本已覆盖模块 `i18n.js`）；
+3. 跑 `just i18n-check`，确认三语言 key 集合完全一致，缺一个都视为失败（脚本已覆盖模块 `i18n.js`）；
 4. 壳层通用文案（按钮、通用提示等）改 `app/core/i18n.js`，命名空间 `sidebar.*` / `settings.*` 等。
 
 ## 8. 性能与体积自检
 
-- 新增依赖大量代码前，先跑一次 `just build:budget`，确认当前基线；改动后再跑一次对比增量；
+- 新增依赖大量代码前，先跑一次 `just build-budget`，确认当前基线；改动后再跑一次对比增量；
 - 单模块 chunk 目标 ≤ 25KB（gzip），若超出，优先考虑：拆更小的子路由懒加载、复用公共组件而非复制代码、检查是否有未裁剪的调试代码；
 - 禁止为图方便引入整份第三方图标库/字体文件到仓库，图标走 `app/components/ui` 内已有的 SVG 图标集，新增图标需精简 SVG（去冗余属性）。
 
 ## 9. 提交前自检清单（每次提交前逐项确认）
 
-- [ ] `just deps:check` 通过（无第三方依赖）
+> 前 5 项可用 `just check` 一键执行（依赖 + lint + 测试 + i18n + 体积预算）。
+
+- [ ] `just deps-check` 通过（无第三方依赖）
 - [ ] `just lint` 通过（无禁用模式：`window.alert` 等）
 - [ ] `just test` 通过
-- [ ] `just i18n:check` 通过
-- [ ] `just build:budget` 通过（未超体积预算）
+- [ ] `just i18n-check` 通过
+- [ ] `just build-budget` 通过（未超体积预算）
 - [ ] 涉及新模块/子模块：`registry.js` 已登记，且未触碰壳层文件
 - [ ] 涉及敏感字段：已走加解密封装，未明文入库
 - [ ] 涉及 SQL：已参数化（无字符串拼接）

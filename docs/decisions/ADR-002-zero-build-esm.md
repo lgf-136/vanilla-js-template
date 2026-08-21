@@ -18,4 +18,4 @@
 ## 后果
 - 生产构建 `scripts/build.js` 只做"文件指纹（?v=hash）+ 极简手写压缩"，不做打包与改名，
   保证动态 `import()` 的相对路径在 dist 中依然有效；
-- 体积预算由 `just build:budget` 静态统计 gzip 后强制执行（CI）。
+- 体积预算由 `just build-budget` 静态统计 gzip 后强制执行（CI）。
