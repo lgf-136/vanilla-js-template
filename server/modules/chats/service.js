@@ -196,6 +196,15 @@ function createService(deps) {
         createdAt: row.created_at,
       };
     };
+    // 联网搜索 Key 配置状态(只回布尔,不回明文)
+    const wsKeys = {};
+    for (const prov of ['tavily', 'brave', 'serper']) {
+      const kr = await db.get('SELECT value FROM app_settings WHERE workspace_id = ? AND key = ?', [
+        ws,
+        'chats:websearch:' + prov + ':apikey',
+      ]);
+      wsKeys[prov] = !!(kr && kr.value);
+    }
     return {
       providers: (providers || []).map(serializeProvider).filter(Boolean),
       prompts: (prompts || []).map((r) => ({
@@ -222,6 +231,7 @@ function createService(deps) {
       })),
       conversations: (conversations || []).map(bindConv),
       prefs,
+      websearchKeys: wsKeys,
     };
   }
 
@@ -502,22 +512,26 @@ function createService(deps) {
     const name = String(body.name || '').trim().slice(0, 60) || (cat && cat.name) || key;
     const type = ['openai', 'anthropic', 'gemini'].indexOf(body.type) !== -1 ? body.type : (cat && cat.type) || 'openai';
     const baseUrl = String(body.baseUrl || '').trim().slice(0, 300);
-    const models = Array.isArray(body.models) ? body.models.map((m) => String(m).trim().slice(0, 128)).filter(Boolean).slice(0, 200) : [];
+    // 未显式传 models 时保留已有/目录模型(避免配置 Key 等操作清空内置模型表)
+    const models = Array.isArray(body.models)
+      ? body.models.map((m) => String(m).trim().slice(0, 128)).filter(Boolean).slice(0, 200)
+      : null;
     const sort = posInt(body.sort, existing ? Number(existing.sort) || 0 : 0, 100000);
     const apiKey = typeof body.apiKey === 'string' && body.apiKey.trim() ? body.apiKey.trim().slice(0, 512) : '';
     if (existing) {
       // 保持已有 key(未提供新 key 时不覆盖)
       const encKey = apiKey ? encrypt(apiKey) : existing.api_key;
+      const nextModels = models !== null ? JSON.stringify(models) : existing.models || (cat && JSON.stringify(cat.models || [])) || '[]';
       await db.run(
         'UPDATE chats_providers SET name = ?, type = ?, base_url = ?, api_key = ?, enabled = ?, models = ?, sort = ?, updated_at = ? WHERE id = ? AND workspace_id = ?',
-        [name, type, baseUrl, encKey, body.enabled === false ? 0 : 1, JSON.stringify(models), sort, nowIso(), existing.id, ws]
+        [name, type, baseUrl, encKey, body.enabled === false ? 0 : 1, nextModels, sort, nowIso(), existing.id, ws]
       );
       return serializeProvider(await db.get('SELECT * FROM chats_providers WHERE id = ?', [existing.id]));
     }
     const id = uid('pv');
     await db.run(
       'INSERT INTO chats_providers (id, workspace_id, key, name, type, base_url, api_key, enabled, models, sort, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, ws, key, name, type, baseUrl, apiKey ? encrypt(apiKey) : '', body.enabled === false ? 0 : 1, JSON.stringify(models), sort, nowIso()]
+      [id, ws, key, name, type, baseUrl, apiKey ? encrypt(apiKey) : '', body.enabled === false ? 0 : 1, JSON.stringify(models || (cat && cat.models) || []), sort, nowIso()]
     );
     return serializeProvider(await db.get('SELECT * FROM chats_providers WHERE id = ?', [id]));
   }
@@ -599,6 +613,11 @@ function createService(deps) {
     return { tools };
   }
 
+  /** 远程 URL 抓取(输入框插入远程图片/文件) */
+  async function fetchUrl(ws, body) {
+    return AI.fetchUrlContent(body && body.url);
+  }
+
   return {
     resolveWorkspace,
     loadPrefs,
@@ -622,6 +641,7 @@ function createService(deps) {
     saveMcp,
     deleteMcp,
     testMcp,
+    fetchUrl,
   };
 }
 

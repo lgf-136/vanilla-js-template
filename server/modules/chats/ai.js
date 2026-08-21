@@ -27,6 +27,10 @@
 const MCP_PROTOCOL_VERSION = '2025-03-26';
 const MAX_TOOL_ROUNDS = 8;
 const REQUEST_TIMEOUT_MS = 90 * 1000;
+// 流式对话整体时长上限(长回答/多轮工具调用可能远超普通请求)
+const STREAM_TIMEOUT_MS = 5 * 60 * 1000;
+// 远程附件抓取上限
+const FETCH_URL_MAX_BYTES = 5 * 1024 * 1024;
 
 /* ---------- 内置供应商目录(用户无需填写 base_url;模型可点\"自动获取\"刷新) ---------- */
 const PROVIDER_CATALOG = [
@@ -336,7 +340,8 @@ async function readText(res) {
 /* ------------------------------------------------------------
  * SSE 工具
  * ---------------------------------------------------------- */
-/** 从 Web Response 中逐行读取 SSE,产出 { event, data } */
+/** 从 Web Response 中逐行读取 SSE,产出 { event, data }。
+ * 空行是帧分隔符(必须据此切帧),兼容 \r\n 行尾与注释行。 */
 async function* readSse(res) {
   if (!res || !res.body || typeof res.body.getReader !== 'function') return;
   const reader = res.body.getReader();
@@ -352,9 +357,17 @@ async function* readSse(res) {
       buffer += decoder.decode(value, { stream: true });
       let idx;
       while ((idx = buffer.indexOf('\n')) !== -1) {
-        const line = buffer.slice(0, idx);
+        const line = buffer.slice(0, idx).replace(/\r$/, '');
         buffer = buffer.slice(idx + 1);
-        if (line === '') continue;
+        if (line === '') {
+          // 空行 → 一帧结束
+          if (dataLines.length) {
+            yield { event: evt || 'message', data: dataLines.join('\n'), id: lastId };
+            evt = null;
+            dataLines = [];
+          }
+          continue;
+        }
         if (line.charAt(0) === ':') continue; // 注释行
         const colon = line.indexOf(':');
         const field = colon === -1 ? line : line.slice(0, colon);
@@ -362,12 +375,6 @@ async function* readSse(res) {
         if (field === 'event') evt = val;
         else if (field === 'data') dataLines.push(val);
         else if (field === 'id') lastId = val;
-        if (val === '' && dataLines.length) {
-          const d = dataLines.join('\n');
-          yield { event: evt || 'message', data: d, id: lastId };
-          evt = null;
-          dataLines = [];
-        }
       }
     }
     if (dataLines.length) {
@@ -668,8 +675,6 @@ function normalizeHistory(dbRows) {
     if (thinking && thinking.content) msg.thinking = thinking.content;
     const toolCalls = parseJson(r.tool_calls, []);
     if (Array.isArray(toolCalls) && toolCalls.length) msg.toolCalls = toolCalls;
-    const toolResults = parseJson(r.tool_results, []);
-    if (Array.isArray(toolResults) && toolResults.length) msg.toolResults = toolResults;
     return msg;
   });
 }
@@ -821,9 +826,13 @@ function buildAnthropicRequest(provider, opts) {
     body.tools = tools.map(toolToAnthropic);
   }
   if (params) {
-    if (params.temperature !== undefined && params.temperature !== '') body.temperature = clampNum(params.temperature, 0, 1);
-    if (params.topP !== undefined && params.topP !== '') body.top_p = clampNum(params.topP, 0, 1);
-    if (params.topK !== undefined && params.topK !== '') body.top_k = clampNum(params.topK, 1, 100);
+    // Anthropic 约束:开启 thinking 时 temperature 必须为 1 且不能传 top_p/top_k
+    const thinkingOn = body.thinking && body.thinking.type === 'enabled';
+    if (!thinkingOn) {
+      if (params.temperature !== undefined && params.temperature !== '') body.temperature = clampNum(params.temperature, 0, 1);
+      if (params.topP !== undefined && params.topP !== '') body.top_p = clampNum(params.topP, 0, 1);
+      if (params.topK !== undefined && params.topK !== '') body.top_k = clampNum(params.topK, 1, 100);
+    }
   }
   return body;
 }
@@ -1138,9 +1147,11 @@ async function streamOnce(provider, opts, emit) {
     body = buildOpenAIRequest(provider, opts);
     parser = parseOpenAI;
   }
+  // 流式响应耗时可能远超普通请求(长回答/多轮工具),用更宽的上限;
+  // withTimeout 只兜底连接挂死,正常流由客户端 abort 控制
   const res = await withTimeout(
-    fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) }),
-    REQUEST_TIMEOUT_MS
+    fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(STREAM_TIMEOUT_MS) }),
+    STREAM_TIMEOUT_MS
   );
   if (!res.ok) {
     const text = trim(await readText(res), 400);
@@ -1185,7 +1196,7 @@ async function runChat(ctx, payload, emit) {
   let history = [];
   if (conversationId) {
     const rows = await db.query(
-      'SELECT id, role, content, parts, thinking, tool_calls, tool_results FROM chats_messages WHERE conversation_id = ? ORDER BY id',
+      'SELECT id, role, content, parts, thinking, tool_calls FROM chats_messages WHERE conversation_id = ? ORDER BY id',
       [conversationId]
     );
     history = normalizeHistory(rows);
@@ -1223,7 +1234,7 @@ async function runChat(ctx, payload, emit) {
     }
   }
   const connected = [];
-  const toolRegistry = []; // { server, tool } — 工具 → 所属 MCP 服务器
+  const toolRegistry = []; // { server, conn, tool } — 工具 → 所属 MCP 服务器与其连接
   for (const server of mcpServers) {
     try {
       const mcp = await connectMcp(server);
@@ -1236,7 +1247,7 @@ async function runChat(ctx, payload, emit) {
         if (!t.name) continue;
         if (enabledMap[t.name]) continue; // 该工具被用户关闭
         tools.push(t);
-        toolRegistry.push({ server, tool: t });
+        toolRegistry.push({ server, conn: mcp, tool: t });
       }
       connected.push(mcp);
     } catch (e) {
@@ -1273,8 +1284,10 @@ async function runChat(ctx, payload, emit) {
     if (result.thinking) thinkingText = thinkingText || result.thinking;
 
     if (result.toolCalls && result.toolCalls.length && connected.length) {
-      // 工具调用 → 执行 → 追加结果 → 下一轮
+      // 工具调用 → 执行 → 追加结果 → 下一轮。
+      // 协议要求 assistant(tool_calls) 必须先于 tool 结果入列(OpenAI/Anthropic 均如此)。
       const roundCalls = result.toolCalls;
+      history.push({ role: 'assistant', content: result.content || '', thinking: result.thinking || '', toolCalls: roundCalls });
       for (const tc of roundCalls) {
         const entry = toolRegistry.find((e) => e.tool.name === tc.name) || null;
         const serverName = entry ? entry.server.name : (mcpServers[0] && mcpServers[0].name) || '';
@@ -1285,7 +1298,7 @@ async function runChat(ctx, payload, emit) {
           server: serverName,
         });
         emit('tool', { id: tc.id, name: tc.name, arguments: tc.arguments, state: 'running' });
-        const client = entry ? entry.server.client : (connected[0] && connected[0].client);
+        const client = entry && entry.conn && entry.conn.client ? entry.conn.client : (connected[0] && connected[0].client);
         try {
           const callResult = client ? await client.callTool(tc.name, tc.arguments) : { content: [] };
           const resultText = mcpResultText(callResult);
@@ -1315,7 +1328,6 @@ async function runChat(ctx, payload, emit) {
           });
         }
       }
-      history.push({ role: 'assistant', content: content || '', thinking: result.thinking || '', toolCalls: roundCalls });
       content = '';
       continue;
     }
@@ -1386,9 +1398,27 @@ function lastUserText(history) {
   return '';
 }
 
+/* ------------------------------------------------------------
+ * 远程附件抓取(输入框"插入文件/图片"的远程 URL 走服务端代理,
+ * 规避浏览器 CORS;图片转 dataUri,文本返回 text)
+ * ---------------------------------------------------------- */
+async function fetchUrlContent(rawUrl) {
+  const url = String(rawUrl || '').trim();
+  if (!/^https?:\/\//i.test(url)) throw new Error('仅支持 http(s) 地址');
+  const res = await withTimeout(fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) }), REQUEST_TIMEOUT_MS);
+  if (!res.ok) throw new Error('抓取失败 HTTP ' + res.status);
+  const contentType = ((res.headers && res.headers.get ? res.headers.get('content-type') : '') || '').toLowerCase();
+  const buffer = Buffer.from(await res.arrayBuffer());
+  if (buffer.length > FETCH_URL_MAX_BYTES) throw new Error('文件超过 5MB 上限');
+  if (contentType.indexOf('image/') === 0) {
+    const mime = contentType.split(';')[0];
+    return { type: 'image', name: url.split('/').pop() || 'image', dataUri: 'data:' + mime + ';base64,' + buffer.toString('base64') };
+  }
+  return { type: 'file', name: url.split('/').pop() || 'file.txt', content: buffer.toString('utf8').slice(0, 400000) };
+}
+
 /** 解析供应商:合并内置目录 / 数据库行 / 解密 key */
-async function resolveProvider(db, decrypt, ws, key) {
-  const row = await db.get('SELECT * FROM chats_providers WHERE key = ? AND workspace_id = ?', [key, ws]);
+async function resolveProvider(db, decrypt, ws, key) {  const row = await db.get('SELECT * FROM chats_providers WHERE key = ? AND workspace_id = ?', [key, ws]);
   if (!row || !row.enabled) {
     // 目录内但尚未入库(如首启未 seed):回退目录
     const c = catalog(key);
@@ -1412,6 +1442,7 @@ async function resolveProvider(db, decrypt, ws, key) {
 module.exports = {
   runChat,
   fetchModels,
+  fetchUrlContent,
   connectMcp,
   closeMcp,
   catalog,
@@ -1419,4 +1450,5 @@ module.exports = {
   PROVIDER_CATALOG,
   toTokens,
   normalizeHistory,
+  readSse,
 };

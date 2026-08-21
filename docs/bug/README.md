@@ -21,6 +21,8 @@
 | [ui-css.md](./ui-css.md) | CSS 工具类 / 编译机制（Tailwind 预构建产物陷阱、工具类映射错误） |
 | [ui-table.md](./ui-table.md) | 数据表格公共组件 `App.ui.dataTable`（排序/视图/过滤/选择） |
 | [ui-i18n.md](./ui-i18n.md) | i18n 文案缺失 / 三语言 key 不一致 |
+| [ui-interaction.md](./ui-interaction.md) | 事件委托冲突 / 开关属性撞名 / 移动端遮罩与抽屉时序 |
+| [server-streaming.md](./server-streaming.md) | 服务端 SSE 流式解析 / 多供应商协议适配 / MCP 工具循环 |
 
 ## 记录模板
 

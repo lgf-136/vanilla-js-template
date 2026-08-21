@@ -453,6 +453,22 @@ function chatsRoutes(deps) {
     }
   }
 
+  /** 远程 URL 抓取(插入远程图片/文件附件) */
+  async function fetchUrl(req, res) {
+    let body;
+    try {
+      body = await readBody(req);
+    } catch (e) {
+      return fail(res, 400, 'bad_json', '请求体必须是 JSON');
+    }
+    try {
+      const result = await svc.fetchUrl(null, body || {});
+      return sendJson(res, 200, Object.assign({ ok: true }, result));
+    } catch (e) {
+      return fail(res, 400, 'fetch_failed', (e && e.message) || String(e));
+    }
+  }
+
   return [
     { method: 'GET', path: '/api/chats/state', desc: '聊天模块全量数据(供应商/提示词/MCP/分组/标签/会话/偏好)', handler: state },
     { method: 'POST', path: '/api/chats/conversations', desc: '新建会话', handler: createConversation },
@@ -477,6 +493,7 @@ function chatsRoutes(deps) {
     { method: 'POST', path: '/api/chats/mcp/test', desc: '测试 MCP 连接并抓取工具', handler: testMcp },
     { method: 'DELETE', path: '/api/chats/mcp', desc: '删除 MCP', handler: deleteMcp },
     { method: 'PUT', path: '/api/chats/prefs', desc: '保存用户偏好(默认供应商/模型/参数/搜索/MCP)', handler: savePrefs },
+    { method: 'POST', path: '/api/chats/fetch-url', desc: '抓取远程 URL 为附件(图片转 dataUri/文本)', handler: fetchUrl },
   ];
 }
 

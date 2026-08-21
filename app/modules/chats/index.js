@@ -1,17 +1,6 @@
 /* ============================================================
- * chats 模块 — 多供应商 AI 助手(完整实现)
- * ------------------------------------------------------------
- * 三栏工作台式布局(参考 apihub):
- *   - 左栏:分组|标签 两页签(复用公共 groupTree / tagPicker)+
- *          会话列表(搜索/收藏/置顶/存档筛选/右键菜单/完整 CRUD)
- *   - 中栏:聊天主界面(流式 Markdown、思考链折叠、工具调用、
- *          气泡复制/编辑/重试/点赞/点踩)+ claude.ai 风格输入框
- *   - 右栏:大模型参数面板(供应商/模型/温度/TopP/TopK/maxTokens/
- *          提示词 CRUD/联网搜索)+ MCP 管理(父子开关)+ Agent 占位
- * 移动端左右栏折叠为汉堡菜单(overlay)。
- * 数据与服务端 /api/chats/* + SSE 流式 /api/chats/chat 通讯。
- * 全部样式消费 token(module.css),组件复用 App.ui.* / groupTree /
- * tagPicker / searchInput,不造重复基础组件。
+ * chats 模块主文件 — 三栏布局/会话列表/消息流/SSE 流式渲染。
+ * 对话框流在 dialogs.js,右栏面板在 panels.js(经 App.chatsCtx 共享)。
  * ============================================================ */
 (function () {
   'use strict';
@@ -170,7 +159,6 @@
 
   var PREFS_KEY = 'chatsprefs';
 
-  /* ---------------- 数据访问 ---------------- */
   function providers() {
     return (state.data && state.data.providers) || [];
   }
@@ -335,7 +323,6 @@
       });
   }
 
-  /** 服务器偏好 → 本地状态(校验供应商/模型存在) */
   function applyPrefs() {
     var prefs = (state.data && state.data.prefs) || {};
     if (prefs.providerKey) {
@@ -361,8 +348,10 @@
       state.webSearch = Object.assign({ enabled: false, provider: 'tavily', maxResults: 3 }, prefs.webSearch);
     }
     if (typeof prefs.mcpEnabled === 'boolean') state.mcpEnabled = prefs.mcpEnabled;
-    if (typeof prefs.rightOpen === 'boolean') state.rightOpen = prefs.rightOpen;
-    if (typeof prefs.leftOpen === 'boolean') state.leftOpen = prefs.leftOpen;
+    // 移动端左右栏始终折叠为抽屉(不继承桌面展开态)
+    var isMobile = window.innerWidth < 768;
+    if (typeof prefs.rightOpen === 'boolean') state.rightOpen = isMobile ? false : prefs.rightOpen;
+    if (typeof prefs.leftOpen === 'boolean') state.leftOpen = isMobile ? false : prefs.leftOpen;
     if (prefs.rightTab) state.rightTab = prefs.rightTab;
   }
 
@@ -407,12 +396,12 @@
     }, 400);
   }
 
-  /* ============================================================
-   * 视图渲染
-   * ============================================================ */
+  /* ---------------- 视图渲染 ---------------- */
   function renderPage() {
     var out =
-      '<div class="ch-page" data-ch-region>' +
+      '<div class="ch-page' +
+      (state.leftOpen || state.rightOpen ? ' has-overlay' : '') +
+      '" data-ch-region>' +
       '<button type="button" class="ch-mobile-backdrop" data-ch-mobile-backdrop aria-hidden="true"></button>' +
       renderLeft() +
       renderMain() +
@@ -553,6 +542,7 @@
         },
         onSelect: function (id) {
           state.groupFilter = id || '';
+          if (state.groupInst) state.groupInst.opts.activeId = state.groupFilter || 'root';
           if (state.leftTab === 'tags') state.leftTab = 'groups';
           state.keepFocus = false;
           rerender();
@@ -684,6 +674,7 @@
         },
         onSelect: function (id) {
           state.tagFilter = id || '';
+          if (state.tagInst) state.tagInst.opts.activeId = state.tagFilter;
           if (state.leftTab === 'groups') state.leftTab = 'tags';
           rerender();
         },
@@ -933,7 +924,11 @@
       '<main class="ch-main">' +
       '<div class="ch-chat">' +
       '<div class="ch-chat-head">' +
-      '<button type="button" class="ch-icon-btn ch-mobile-only" data-ch-toggle-left aria-label="' +
+      '<button type="button" class="ch-icon-btn' +
+      (state.leftOpen ? ' ch-mobile-only' : '') +
+      '" data-ch-toggle-left aria-label="' +
+      escAttr(t('chats.collapse')) +
+      '" data-tip="' +
       escAttr(t('chats.collapse')) +
       '">' +
       ic('menu', 'size-4') +
@@ -1111,6 +1106,7 @@
       '</div>' +
       '<div class="cm-assistant-meta">' +
       (fee ? '<span class="cm-usage">' + esc(fee) + '</span>' : '') +
+      (m.createdAt ? '<span class="cm-user-time">' + esc(fmtStamp(m.createdAt)) + '</span>' : '') +
       '</div>' +
       '<div class="cm-assistant-actions">' +
       '<button type="button" data-ch-copy="' +
@@ -1190,7 +1186,8 @@
     var opened = state.openTools && state.openTools[key];
     var rows = tools
       .map(function (tl, i) {
-        return renderToolRow(tl, i, key + '-' + (tl.id || i), opened === true);
+        var rowKey = key + '-' + (tl.id || i);
+        return renderToolRow(tl, i, rowKey, !!(state.openToolRow && state.openToolRow[rowKey]));
       })
       .join('');
     return (
@@ -1211,16 +1208,16 @@
       '</div>'
     );
   }
-  function renderToolRow(t, i, key, opened) {
+  function renderToolRow(tl, i, key, opened) {
     var stateIcon;
     var stateLabel;
-    if (t.state === 'error') {
+    if (tl.state === 'error') {
       stateIcon = ic('circle-x', 'size-3.5');
       stateLabel = 'cm-tool-error';
-    } else if (t.state === 'success') {
+    } else if (tl.state === 'success') {
       stateIcon = ic('circle-check', 'size-3.5');
       stateLabel = 'cm-tool-ok';
-    } else if (t.state === 'running') {
+    } else if (tl.state === 'running') {
       stateIcon = ic('loader-2', 'size-3.5 ch-spin');
       stateLabel = 'cm-tool-run';
     } else {
@@ -1230,24 +1227,32 @@
     var argsStr = '';
     try {
       argsStr =
-        typeof t.arguments === 'string'
-          ? t.arguments
-          : JSON.stringify(t.arguments || {}, null, 2);
+        typeof tl.arguments === 'string'
+          ? tl.arguments
+          : JSON.stringify(tl.arguments || {}, null, 2);
     } catch (e) {
       argsStr = '';
     }
     var resultStr = '';
-    if (t.result !== undefined && t.result !== null) {
-      if (t.result && t.result.error) resultStr = '[err] ' + t.result.error;
-      else if (typeof t.result === 'string') resultStr = t.result;
+    if (tl.result !== undefined && tl.result !== null) {
+      if (tl.result && tl.result.error) resultStr = '[err] ' + tl.result.error;
+      else if (typeof tl.result === 'string') resultStr = tl.result;
       else {
         try {
-          resultStr = JSON.stringify(t.result, null, 2);
+          resultStr = JSON.stringify(tl.result, null, 2);
         } catch (e) {
-          resultStr = String(t.result);
+          resultStr = String(tl.result);
         }
       }
     }
+    var stateText =
+      tl.state === 'error'
+        ? t('chats.toolFailed')
+        : tl.state === 'success'
+          ? t('chats.toolDone')
+          : tl.state === 'running'
+            ? t('chats.toolRun')
+            : '';
     return (
       '<div class="cm-tool" data-tool-key="' +
       escAttr(key) +
@@ -1265,13 +1270,13 @@
       stateIcon +
       '</span>' +
       '<span class="cm-tool-name" data-tool-name>' +
-      esc(t.name || 'tool') +
+      esc(tl.name || 'tool') +
       '</span>' +
-      (t.server ? '<span class="cm-tool-server">' + esc(t.server) + '</span>' : '') +
+      (tl.server ? '<span class="cm-tool-server">' + esc(tl.server) + '</span>' : '') +
       '<span class="cm-tool-state ' +
       stateLabel +
       '">' +
-      esc(t.state === 'error' ? t('chats.toolFailed') : t.state === 'success' ? t('chats.toolDone') : t.state === 'running' ? t('chats.toolRun') : '') +
+      esc(stateText) +
       '</span>' +
       '</button>' +
       '</div>' +
@@ -1307,11 +1312,9 @@
       (sm.thinking
         ? renderThinkingBlock('__stream__', sm.thinking, state.openThink['__stream__'] !== false)
         : '') +
-      (sm.tools.length
-        ? '<div class="cm-tools cm-stream-tools" data-stream-tools>' +
-          renderToolList(sm.tools, '__streamtools__', true) +
-          '</div>'
-        : '') +
+      '<div data-stream-tools>' +
+      (sm.tools.length ? renderToolList(sm.tools, '__streamtools__', true) : '') +
+      '</div>' +
       (sm.error ? '<div class="cm-error">' + ic('circle-x', 'size-3.5') + esc(sm.error) + '</div>' : '') +
       '<div class="cm-md" data-stream-md>' +
       (sm.content ? App.md.render(sm.content) : '<span class="cm-typing"><i></i><i></i><i></i></span>') +
@@ -1540,23 +1543,6 @@
       '</button>'
     );
   }
-  function renderWebSearchChip() {
-    return (
-      '<button type="button" class="cm-chip' +
-      (state.webSearch.enabled ? ' is-on' : '') +
-      '" data-ch-ws-toggle data-tip="' +
-      escAttr(t('chats.webSearchOn')) +
-      '" aria-label="' +
-      escAttr(t('chats.webSearchOn')) +
-      '">' +
-      ic('globe', 'size-3.5') +
-      '<span class="cm-chip-text">' +
-      t('chats.webSearchOn') +
-      '</span>' +
-      '</button>'
-    );
-  }
-
   /* ---------- 右栏 ---------- */
   function renderRight() {
     if (!state.rightOpen) {
@@ -1609,290 +1595,11 @@
       '</button>'
     );
   }
-  /** 面板字段区块:标题 + 内容 */
-  function fieldSection(label, content) {
-    return (
-      '<div class="ch-field-section">' +
-      '<div class="ch-field-label">' +
-      label +
-      '</div>' +
-      '<div class="ch-field-body">' +
-      content +
-      '</div>' +
-      '</div>'
-    );
-  }
+  /** 右栏面板体(dialogs/panels 拆分后由 panels.js 渲染) */
   function renderRightBody() {
-    if (state.rightTab === 'mcp') return renderMcpTab();
-    if (state.rightTab === 'agent') return renderAgentTab();
-    return renderParamsTab();
+    return App.chatsPanels.renderBody();
   }
 
-  function renderParamsTab() {
-    var p = providerByKey(state.providerKey);
-    var models = modelOptions(state.providerKey);
-    var prompt = promptById(state.promptId);
-    var q = (state.modelQuery || '').trim().toLowerCase();
-    var filtered = models
-      ? models.filter(function (m) {
-          return m.toLowerCase().indexOf(q) !== -1;
-        })
-      : [];
-
-    var schema = [
-      { label: t('chats.temperature'), key: 'temperature', min: 0, max: 2, step: 0.01 },
-      { label: t('chats.topP'), key: 'topP', min: 0, max: 1, step: 0.01 },
-    ];
-    var paramInputs = schema
-      .map(function (s2) {
-        var val = state.params[s2.key];
-        return renderParamField(s2, val);
-      })
-      .join('');
-    var maxTokens = state.params.maxTokens;
-
-    return (
-      '<div class="ch-panel-scroll">' +
-      fieldSection(t('chats.provider'),
-        '<div class="ch-field">' +
-        '<button type="button" class="ch-select-like" data-dropdown-trigger data-ch-p-provider-trigger>' +
-        '<span class="ch-select-ic">' +
-        ic('layers', 'size-3.5') +
-        '</span>' +
-        '<span class="ch-select-name">' +
-        esc(p ? p.name : t('chats.selectProvider')) +
-        '</span>' +
-        (p && !p.hasApiKey && !p.local ? ic('key-round', 'size-3 ch-warn') : '') +
-        ic('chevron-down', 'size-3.5') +
-        '</button>' +
-        '<div data-dropdown-menu class="ch-select-menu ' +
-        App.ui.dropdownContentClass('min-w-52') +
-        '" data-side="bottom">' +
-        providers()
-          .map(function (p2) {
-            return (
-              '<button type="button" role="menuitem" class="' +
-              App.ui.dropdownItemClass('gap-2') +
-              '" data-ch-p-provider="' +
-              escAttr(p2.key) +
-              '">' +
-              '<span class="ch-dd-check">' +
-              (p2.key === state.providerKey ? ic('check', 'size-3.5') : '') +
-              '</span>' +
-              '<span class="ch-dd-name">' +
-              esc(p2.name) +
-              '</span>' +
-              '</button>'
-            );
-          })
-          .join('') +
-        App.ui.dropdownSeparator() +
-        '<button type="button" role="menuitem" class="' +
-        App.ui.dropdownItemClass('gap-2 ch-dd-primary') +
-        '" data-ch-provider-add>' +
-        ic('circle-plus', 'size-3.5') +
-        t('chats.addProvider') +
-        '</button>' +
-        '</div></div>') +
-      fieldSection(
-        t('chats.model'),
-        '<div class="ch-model-combo">' +
-        '<div class="ch-model-top">' +
-        '<input type="text" class="ch-model-input" data-ch-model-input placeholder="' +
-        escAttr(t('chats.modelPlaceholder')) +
-        '" value="' +
-        escAttr(state.model || '') +
-        '" autocomplete="off" />' +
-        '<button type="button" class="ch-icon-btn ch-sm-btn" data-ch-p-model-fetch data-tip="' +
-        escAttr(t('chats.fetchModels')) +
-        '" aria-label="' +
-        escAttr(t('chats.fetchModels')) +
-        '">' +
-        ic('refresh-cw', 'size-3.5') +
-        '</button>' +
-        '</div>' +
-        '<div class="ch-model-list" data-ch-model-list>' +
-        (filtered && filtered.length
-          ? filtered
-              .map(function (m) {
-                return (
-                  '<button type="button" class="ch-model-opt' +
-                  (m === state.model ? ' is-on' : '') +
-                  '" data-ch-p-model="' +
-                  escAttr(m) +
-                  '">' +
-                  (m === state.model ? ic('check', 'size-3.5') : '') +
-                  '<span>' +
-                  esc(m) +
-                  '</span>' +
-                  '</button>'
-                );
-              })
-              .join('')
-          : '<div class="ch-model-empty">' + esc(t('chats.noModelsHint')) + '</div>') +
-        '</div>' +
-        '</div>'
-      ) +
-      paramInputs +
-      fieldSection(
-        t('chats.topK'),
-        '<input type="number" class="ch-num-input" data-ch-param="topK" min="0" max="100" value="' +
-        escAttr(state.params.topK != null ? state.params.topK : '') +
-        '" />'
-      ) +
-      fieldSection(
-        t('chats.maxTokens'),
-        '<div class="ch-tokens-row">' +
-        '<input type="text" class="ch-num-input ch-tokens-input" data-ch-param="maxTokens" value="' +
-        escAttr(maxTokens) +
-        '" placeholder="' +
-        escAttr(t('chats.tokensPlaceholder')) +
-        '" autocomplete="off" />' +
-        '<span class="ch-tokens-hint">' +
-        esc(formatTokens(maxTokens)) +
-        '</span>' +
-        '<span class="cm-chip-wrap" data-dropdown>' +
-        '<button type="button" class="ch-preset-btn" data-dropdown-trigger aria-label="' +
-        escAttr(t('chats.presets')) +
-        '">' +
-        ic('chevron-down', 'size-3.5') +
-        '</button>' +
-        '<div data-dropdown-menu class="' +
-        App.ui.dropdownContentClass('min-w-24') +
-        '" data-side="bottom">' +
-        TOKEN_PRESETS.map(function (v) {
-          return (
-            '<button type="button" role="menuitem" class="' +
-            App.ui.dropdownItemClass('gap-1') +
-            '" data-ch-preset="' +
-            escAttr(v) +
-            '">' +
-            (String(maxTokens) === v ? ic('check', 'size-3.5') : '') +
-            '<span class="ch-dd-name">' +
-            esc(v) +
-            '</span>' +
-            '</button>'
-          );
-        }).join('') +
-        '</div></span>' +
-        '</div>'
-      ) +
-      fieldSection(
-        t('chats.prompt'),
-        '<div class="ch-field">' +
-        '<button type="button" class="ch-select-like" data-dropdown-trigger data-ch-prompt-trigger>' +
-        '<span class="ch-select-ic">' +
-        ic('wand-2', 'size-3.5') +
-        '</span>' +
-        '<span class="ch-select-name">' +
-        esc(prompt ? prompt.name : t('chats.noPrompt')) +
-        '</span>' +
-        ic('chevron-down', 'size-3.5') +
-        '</button>' +
-        '<div data-dropdown-menu class="ch-select-menu ' +
-        App.ui.dropdownContentClass('min-w-56') +
-        '" data-side="bottom">' +
-        '<button type="button" role="menuitem" class="' +
-        App.ui.dropdownItemClass('gap-2') +
-        '" data-ch-prompt-none>' +
-        '<span class="ch-dd-check">' +
-        (!state.promptId ? ic('check', 'size-3.5') : '') +
-        '</span>' +
-        '<span class="ch-dd-name">' +
-        esc(t('chats.noPrompt')) +
-        '</span>' +
-        '</button>' +
-        App.ui.dropdownSeparator() +
-        prompts()
-          .map(function (pr) {
-            return (
-              '<button type="button" role="menuitem" class="' +
-              App.ui.dropdownItemClass('gap-2') +
-              '" data-ch-prompt="' +
-              escAttr(pr.id) +
-              '">' +
-              '<span class="ch-dd-check">' +
-              (pr.id === state.promptId ? ic('check', 'size-3.5') : '') +
-              '</span>' +
-              '<span class="ch-dd-name">' +
-              esc(pr.name) +
-              '</span>' +
-              (pr.category ? '<span class="ch-dd-cat">' + esc(pr.category) + '</span>' : '') +
-              '</button>'
-            );
-          })
-          .join('') +
-        App.ui.dropdownSeparator() +
-        '<button type="button" role="menuitem" class="' +
-        App.ui.dropdownItemClass('gap-2 ch-dd-primary') +
-        '" data-ch-prompt-new>' +
-        ic('plus', 'size-3.5') +
-        t('chats.promptNew') +
-        '</button>' +
-        '</div></div>' +
-        (prompt
-          ? '<div class="ch-prompt-actions">' +
-            '<button type="button" class="ch-link-btn" data-ch-prompt-edit="' +
-            escAttr(prompt.id) +
-            '">' +
-            ic('pencil', 'size-3') +
-            t('chats.promptEdit') +
-            '</button>' +
-            '<button type="button" class="ch-link-btn is-danger" data-ch-prompt-del="' +
-            escAttr(prompt.id) +
-            '">' +
-            ic('trash-2', 'size-3') +
-            t('chats.promptDelete') +
-            '</button>' +
-            '</div>'
-          : '') +
-        (prompt ? '<div class="ch-prompt-preview">' + esc(prompt.content.slice(0, 180)) + (prompt.content.length > 180 ? '…' : '') + '</div>' : '')
-      ) +
-      fieldSection(
-        t('chats.webSearchTitle'),
-        '<label class="ch-switch-row">' +
-        '<span class="ch-switch-label">' +
-        t('chats.webSearchToggle') +
-        '</span>' +
-        '<span role="switch" aria-checked="' +
-        (state.webSearch.enabled ? 'true' : 'false') +
-        '" class="ui-switch' +
-        (state.webSearch.enabled ? ' is-on' : '') +
-        '" data-ch-ws-switch></span>' +
-        '</label>' +
-        (state.webSearch.enabled
-          ? '<div class="ch-ws-providers">' +
-            ['tavily', 'brave', 'serper']
-              .map(function (prov) {
-                return (
-                  '<button type="button" class="ch-ws-provider' +
-                  (state.webSearch.provider === prov ? ' is-on' : '') +
-                  '" data-ch-ws-provider="' +
-                  prov +
-                  '">' +
-                  capt(prov) +
-                  '</button>'
-                );
-              })
-              .join('') +
-            '</div>'
-          : '')
-      ) +
-      '</div>'
-    );
-  }
-
-  var TOKEN_PRESETS = [
-    '2k',
-    '4k',
-    '8k',
-    '16k',
-    '32k',
-    '64k',
-    '128k',
-    '256k',
-    '384k',
-  ];
   function formatTokens(v) {
     var n = parseTokens(v);
     if (!n) return '';
@@ -1900,172 +1607,7 @@
     if (n % 1024 === 0) return n / 1024 + 'K';
     return String(n);
   }
-  function capt(name) {
-    return { tavily: 'Tavily', brave: 'Brave', serper: 'Serper' }[name] || name;
-  }
-
-  function renderParamField(s, val) {
-    if (val === undefined || val === '' || val === null) val = s.min;
-    var pct = ((Number(val) - s.min) / (s.max - s.min)) * 100;
-    return (
-      '<div class="ch-field ch-param">' +
-      '<div class="ch-param-head">' +
-      '<label>' +
-      esc(s.label) +
-      '</label>' +
-      '<span class="ch-param-val" data-param-val="' +
-      s.key +
-      '">' +
-      esc(val) +
-      '</span>' +
-      '</div>' +
-      '<div class="ch-param-range">' +
-      '<input type="range" class="cm-range" min="' +
-      s.min +
-      '" max="' +
-      s.max +
-      '" step="' +
-      s.step +
-      '" value="' +
-      val +
-      '" data-ch-param="' +
-      s.key +
-      '" data-param-range="' +
-      s.key +
-      '" style="--pct:' +
-      pct +
-      '%" />' +
-      '</div>' +
-      '</div>'
-    );
-  }
-
-  function renderMcpTab() {
-    var list = mcps();
-    var body =
-      '<div class="ch-panel-scroll">' +
-      (list.length
-        ? list.map(renderMcpCard).join('')
-        : '<div class="ch-panel-empty">' +
-          ic('plug', 'size-5') +
-          '<span>' +
-          esc(t('chats.mcpEmpty')) +
-          '</span>' +
-          '</div>') +
-      '</div>' +
-      '<div class="ch-panel-foot">' +
-      '<button type="button" data-slot="button" class="' +
-      App.ui.buttonClass('default', 'sm', 'w-full') +
-      '" data-ch-mcp-add>' +
-      ic('plus', 'size-4') +
-      t('chats.mcpAdd') +
-      '</button>' +
-      '</div>';
-    return body;
-  }
-  function renderMcpCard(m) {
-    var tools = Array.isArray(m.tools) ? m.tools : [];
-    var toolRows = tools
-      .map(function (tl, i) {
-        var disabled = !m.enabled;
-        var on = m.enabled && tl.enabled !== false;
-        return (
-          '<label class="ch-mcp-tool">' +
-          '<span class="ch-mcp-tool-name">' +
-          ic('wrench', 'size-3') +
-          '<span class="ch-mcp-tool-title">' +
-          esc(tl.name || 'tool') +
-          '</span>' +
-          '</span>' +
-          '<span role="switch" aria-checked="' +
-          (on ? 'true' : 'false') +
-          '" class="ui-switch' +
-          (on ? ' is-on' : '') +
-          (disabled ? ' is-disabled' : '') +
-          '" data-ch-mcp-tool="' +
-          escAttr(m.id) +
-          ':' +
-          i +
-          '"></span>' +
-          '</label>'
-        );
-      })
-      .join('');
-    var sse = m.protocol === 'sse';
-    return (
-      '<div class="ch-mcp-card">' +
-      '<div class="ch-mcp-head">' +
-      '<div class="ch-mcp-titles">' +
-      '<span class="ch-mcp-name">' +
-      (sse ? ic('radio', 'size-3.5') : ic('plug', 'size-3.5')) +
-      esc(m.name) +
-      '</span>' +
-      '<span class="ch-mcp-url">' +
-      esc(m.url) +
-      '</span>' +
-      '</div>' +
-      '<span role="switch" aria-checked="' +
-      (m.enabled ? 'true' : 'false') +
-      '" class="ui-switch' +
-      (m.enabled ? ' is-on' : '') +
-      '" data-ch-mcp-toggle="' +
-      escAttr(m.id) +
-      '"></span>' +
-      '</div>' +
-      '<div class="ch-mcp-meta">' +
-      '<span class="ch-mcp-badge">' +
-      (sse ? t('chats.mcpProtocolSse') : t('chats.mcpProtocolHttp')) +
-      '</span>' +
-      '<span class="ch-mcp-count">' +
-      t('chats.mcpTools') +
-      ' ' +
-      tools.length +
-      '</span>' +
-      '<div class="ch-mcp-ops">' +
-      '<button type="button" class="ch-mcp-op" data-ch-mcp-edit="' +
-      escAttr(m.id) +
-      '">' +
-      ic('pencil', 'size-3') +
-      '</button>' +
-      '<button type="button" class="ch-mcp-op is-danger" data-ch-mcp-del="' +
-      escAttr(m.id) +
-      '">' +
-      ic('trash-2', 'size-3') +
-      '</button>' +
-      '</div>' +
-      '</div>' +
-      (tools.length
-        ? '<div class="ch-mcp-tools">' +
-          '<div class="ch-mcp-tools-label">' +
-          t('chats.mcpToolsEnabled') +
-          '</div>' +
-          toolRows +
-          '</div>'
-        : '<div class="ch-mcp-notools">' + esc(t('chats.mcpFetchFirst')) + '</div>') +
-      '</div>'
-    );
-  }
-  function renderAgentTab() {
-    return (
-      '<div class="ch-panel-scroll">' +
-      App.ui.emptyState({
-        icon: 'bot',
-        title: t('chats.agentTab'),
-        desc: t('chats.agentDesc'),
-        fill: true,
-      }) +
-      '</div>'
-    );
-  }
-
-  function renderPageT() {
-    // 占位(由 renderPage 使用 state.t)
-    return '';
-  }
-
-  /* ============================================================
-   * 交互(全部 document 级事件委托)
-   * ============================================================ */
+  /* ---------------- 交互(document 级事件委托) ---------------- */
   document.addEventListener('input', function (e) {
     var el = e.target;
     if (!el || !el.getAttribute) return;
@@ -2087,9 +1629,9 @@
         if (hint) hint.textContent = formatTokens(val);
       } else {
         state.params[key] = el.type === 'checkbox' ? (el.checked ? 1 : 0) : Number(el.value);
-        var valEl = region.querySelector('[data-param-val="' + quote(key) + '"]');
+        var valEl = region.querySelector('[data-param-val="' + key + '"]');
         if (valEl) valEl.textContent = el.value;
-        var rangeEl = region.querySelector('[data-param-range="' + quote(key) + '"]');
+        var rangeEl = region.querySelector('[data-param-range="' + key + '"]');
         if (rangeEl) {
           var s = Number(el.value);
           var min = Number(el.min) || 0;
@@ -2104,11 +1646,6 @@
       state.model = el.value.trim();
       state.modelQuery = el.value;
       state.keepFocus = true;
-      var list = region.querySelector('[data-ch-model-list]');
-      if (list && list._chModelOpen) {
-        // 重绘候选(简单:仅当输入变化时切换命中态)
-        applyModelFilter(el.value);
-      }
       persistPrefs();
       return;
     }
@@ -2120,43 +1657,10 @@
     }
   });
 
-  function quote(k) {
-    return String(k);
-  }
   function autoGrow(el) {
     el.style.height = 'auto';
     el.style.height = Math.min(200, Math.max(44, el.scrollHeight)) + 'px';
   }
-  function applyModelFilter(q) {
-    var region = regionEl();
-    if (!region) return;
-    var list = region.querySelector('[data-ch-model-list]');
-    if (!list) return;
-    var models = modelOptions(state.providerKey) || [];
-    var lq = String(q || '').toLowerCase();
-    var html = models
-      .filter(function (m) {
-        return m.toLowerCase().indexOf(lq) !== -1 && (m === state.model || lq ? true : true);
-      })
-      .map(function (m) {
-        return (
-          '<button type="button" class="ch-model-opt' +
-          (m === state.model ? ' is-on' : '') +
-          '" data-ch-p-model="' +
-          escAttr(m) +
-          '">' +
-          (m === state.model ? ic('check', 'size-3.5') : '') +
-          '<span>' +
-          esc(m) +
-          '</span>' +
-          '</button>'
-        );
-      })
-      .join('');
-    list.innerHTML = html || '<div class="ch-model-empty">' + esc(t('chats.noModelsHint')) + '</div>';
-    list._chModelOpen = true;
-  }
-
   document.addEventListener('change', function (e) {
     var el = e.target;
     if (!el || !el.getAttribute) return;
@@ -2284,9 +1788,9 @@
       stopStreamSilent();
       state.selectedId = open.getAttribute('data-ch-open');
       state.messages = [];
+      closeMobileLeft();
       rerender();
       loadMessages(state.selectedId, true);
-      closeMobileLeft();
       return;
     }
     if (el.closest('[data-ch-newconv]')) {
@@ -2332,7 +1836,7 @@
       return;
     }
     if (el.closest('[data-ch-model-manual]')) {
-      openModelManualDialog();
+      App.chatsDialogs.openModelManualDialog();
       return;
     }
     var pProvider = el.closest('[data-ch-p-provider]');
@@ -2341,7 +1845,7 @@
       return;
     }
     if (el.closest('[data-ch-provider-add]')) {
-      openProviderDialog();
+      App.chatsDialogs.openProviderDialog();
       return;
     }
     var pModel = el.closest('[data-ch-p-model]');
@@ -2377,17 +1881,17 @@
       return;
     }
     if (el.closest('[data-ch-prompt-new]')) {
-      openPromptDialog(null);
+      App.chatsDialogs.openPromptDialog(null);
       return;
     }
     var pEdit = el.closest('[data-ch-prompt-edit]');
     if (pEdit) {
-      openPromptDialog(pEdit.getAttribute('data-ch-prompt-edit'));
+      App.chatsDialogs.openPromptDialog(pEdit.getAttribute('data-ch-prompt-edit'));
       return;
     }
     var pDel = el.closest('[data-ch-prompt-del]');
     if (pDel) {
-      deletePrompt(pDel.getAttribute('data-ch-prompt-del'));
+      App.chatsDialogs.deletePrompt(pDel.getAttribute('data-ch-prompt-del'));
       return;
     }
     if (el.closest('[data-ch-ws-toggle]') || el.closest('[data-ch-ws-switch]')) {
@@ -2420,7 +1924,6 @@
       return;
     }
     if (el.closest('[data-ch-send]')) {
-      // 备用发送(桌面端默认按钮未渲染,保留)
       doSend();
       return;
     }
@@ -2429,6 +1932,29 @@
       state.webSearch.enabled = !state.webSearch.enabled;
       persistPrefs();
       rerender();
+      return;
+    }
+    // MCP
+    if (el.closest('[data-ch-mcp-add]')) {
+      App.chatsDialogs.openMcpDialog(null);
+      return;
+    }
+    var mcpEdit = el.closest('[data-ch-mcp-edit]');
+    if (mcpEdit) {
+      App.chatsDialogs.openMcpDialog(mcpEdit.getAttribute('data-ch-mcp-edit'));
+      return;
+    }
+    var mcpDel = el.closest('[data-ch-mcp-del]');
+    if (mcpDel) {
+      App.chatsDialogs.deleteMcp(mcpDel.getAttribute('data-ch-mcp-del'));
+      return;
+    }
+    if (el.closest('[data-ch-attach-image]')) {
+      App.chatsDialogs.openAttachDialog('image');
+      return;
+    }
+    if (el.closest('[data-ch-attach-file]')) {
+      App.chatsDialogs.openAttachDialog('file');
       return;
     }
     if (el.closest('[data-ch-reload]')) {
@@ -2498,15 +2024,6 @@
     var toolToggle = el.closest('[data-ch-tool-toggle]');
     if (toolToggle) {
       var tkey = toolToggle.getAttribute('data-ch-tool-toggle');
-      // 流式工具原位展开/折叠
-      var trow = el.closest('[data-tool-key]');
-      if (trow && trow.classList.contains('cm-stream')) {
-        var detail = trow.querySelector('.cm-tool-detail');
-        var opened2 = !detail;
-        if (opened2) toolExpand(trow, tkey);
-        else trow.classList.remove('is-open'), removeDetail(trow);
-        return;
-      }
       state.openToolRow = state.openToolRow || {};
       state.openToolRow[tkey] = !state.openToolRow[tkey];
       rerender();
@@ -2522,33 +2039,9 @@
       rerender();
       return;
     }
-    // MCP
-    if (el.closest('[data-ch-mcp-add]')) {
-      openMcpDialog(null);
-      return;
-    }
-    var mcpToggle = el.closest('[data-ch-mcp-toggle-ctrl]');
-    if (mcpToggle) {
-      // 占位(开关用 .ui-switch 的 click 委托见下)
-    }
-    var mc = el.closest('[data-ch-mcp-toggle]');
-    if (mc && !el.closest('[data-ch-mcp-tool]')) {
-      toggleMcp(mc.getAttribute('data-ch-mcp-toggle'));
-      return;
-    }
-    var mcpEdit = el.closest('[data-ch-mcp-edit]');
-    if (mcpEdit) {
-      openMcpDialog(mcpEdit.getAttribute('data-ch-mcp-edit'));
-      return;
-    }
-    var mcpDel = el.closest('[data-ch-mcp-del]');
-    if (mcpDel) {
-      deleteMcp(mcpDel.getAttribute('data-ch-mcp-del'));
-      return;
-    }
   });
 
-  // 开关类(role=switch)统一点击处理:MCP 服务器 / 工具 / 网络搜索
+  // 开关类(role=switch)统一点击处理:MCP 服务器/工具开关(与 composer 芯片的 data-ch-mcp-toggle 区分)
   document.addEventListener('click', function (e) {
     var el = e.target;
     if (!el || !el.closest) return;
@@ -2558,11 +2051,9 @@
       toggleMcpTool(parts[0], Number(parts[1]));
       return;
     }
-    var ws = el.closest('[data-ch-ws-switch]');
-    if (ws) {
-      state.webSearch.enabled = !state.webSearch.enabled;
-      persistPrefs();
-      rerender();
+    var ms = el.closest('[data-ch-mcp-sw]');
+    if (ms) {
+      toggleMcp(ms.getAttribute('data-ch-mcp-sw'));
       return;
     }
   });
@@ -2748,7 +2239,7 @@
     // 添加标签(打开标签选择浮层)
     var tagsAct = el.closest('[data-ch-conv-act="tags"]');
     if (tagsAct) {
-      openTagsPicker(tagsAct.getAttribute('data-id'));
+      App.chatsDialogs.openTagsPicker(tagsAct.getAttribute('data-id'));
       return;
     }
   });
@@ -2775,175 +2266,8 @@
         });
       return;
     }
-    if (act === 'rename') openRenameConv(c);
-    else if (act === 'del') confirmDeleteConv(c);
-  }
-
-  function openRenameConv(c) {
-    App.ui.dialog({
-      head: '<h2 class="ui-dialog-title">' + t('chats.rename') + '</h2>',
-      body:
-        '<label class="ui-dialog-label">' +
-        t('chats.name') +
-        '</label>' +
-        '<input type="text" class="ui-input ch-dialog-input" data-ch-rename-input value="' +
-        escAttr(c.title || '') +
-        '" maxlength="80" />',
-      foot:
-        '<button type="button" class="' +
-        App.ui.buttonClass('outline', 'sm') +
-        '" data-ch-rename-cancel>' +
-        t('chats.cancel') +
-        '</button>' +
-        '<button type="button" class="' +
-        App.ui.buttonClass('default', 'sm') +
-        '" data-ch-rename-ok>' +
-        t('chats.save') +
-        '</button>',
-    });
-    var inp = document.querySelector('[data-ch-rename-input]');
-    if (inp) {
-      inp.focus();
-      inp.select();
-    }
-  }
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    var ok = el.closest('[data-ch-rename-ok]');
-    if (ok) {
-      var inp = document.querySelector('[data-ch-rename-input]');
-      var title = (inp && inp.value.trim()) || '';
-      var id = null;
-      var c = selectedConv();
-      if (c) id = c.id;
-      if (!id) id = state.selectedId;
-      if (id) {
-        App.api.put('/api/chats/conversations/' + encodeURIComponent(id), { title: title }).then(function () {
-          return reloadState();
-        });
-      }
-      App.ui.closeDialog();
-      return;
-    }
-    if (el.closest('[data-ch-rename-cancel]')) App.ui.closeDialog();
-  });
-
-  function confirmDeleteConv(c) {
-    App.ui.dialog({
-      head: '<h2 class="ui-dialog-title">' + t('chats.deleteConv') + '</h2>',
-      body:
-        '<p class="ui-dialog-desc">' +
-        tF('chats.deleteConvMsg', { name: esc(c.title || t('chats.untitled')) }) +
-        '</p>',
-      foot:
-        '<button type="button" class="' +
-        App.ui.buttonClass('outline', 'sm') +
-        '" data-ch-del-cancel>' +
-        t('chats.cancel') +
-        '</button>' +
-        '<button type="button" class="' +
-        App.ui.buttonClass('destructive', 'sm') +
-        '" data-ch-del-ok>' +
-        t('chats.delete') +
-        '</button>',
-    });
-  }
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    if (el.closest('[data-ch-del-ok]')) {
-      var id = state.selectedId;
-      App.ui.closeDialog();
-      if (!id) return;
-      App.api
-        .del('/api/chats/conversations/' + encodeURIComponent(id))
-        .then(function () {
-          if (state.selectedId === id) state.selectedId = null;
-          state.messages = [];
-          stopStreamSilent();
-          reloadState();
-        })
-        .catch(function (err) {
-          App.ui.toast((err && err.message) || 'delete_failed', 'error');
-          reloadState();
-        });
-      return;
-    }
-    if (el.closest('[data-ch-del-cancel]')) App.ui.closeDialog();
-  });
-
-  function openTagsPicker(convId) {
-    var c = null;
-    conversations().forEach(function (cv) {
-      if (cv.id === convId) c = cv;
-    });
-    if (!c) return;
-    var picked = (c.tagIds || []).slice();
-    var inst = tagInst();
-    var html =
-      '<div class="cm-tagmenu" data-cm-tagmenu>' +
-      '<div class="cm-tagmenu-head">' +
-      t('chats.addTags') +
-      '</div>' +
-      inst.pickerHtml(picked) +
-      '</div>';
-    App.ui.contextMenu.open(html, {
-      x: 8,
-      y: 8,
-      className: 'cm-ctxpop cm-tagmenu-pop',
-      onClose: function () {
-        state._tagMenuConv = null;
-      },
-    });
-    var pop = document.querySelector('[data-ctxpop].cm-tagmenu-pop');
-    if (pop) pop._chConvId = convId;
-    // 绑定当前会话标签切换
-    state._tagMenuConv = convId;
-    state._tagMenuPicked = picked;
-  }
-  // 标签多选切换 → 持久化
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    var pick = el.closest('[data-tp-pick]');
-    if (!pick) return;
-    var pop = el.closest('[data-ctxpop].cm-tagmenu-pop');
-    if (!pop) return;
-    var convId = pop._chConvId;
-    var id = pick.getAttribute('data-tp-pick');
-    var c = null;
-    conversations().forEach(function (cv) {
-      if (cv.id === convId) c = cv;
-    });
-    if (!c) return;
-    var picked = (c.tagIds || []).slice();
-    var idx = picked.indexOf(id);
-    if (idx === -1) picked.push(id);
-    else picked.splice(idx, 1);
-    saveConvTags(convId, picked);
-    App.ui.contextMenu.close();
-  });
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    var done = el.closest('[data-tp-done]');
-    if (!done) return;
-    var pop = el.closest('[data-ctxpop].cm-tagmenu-pop');
-    if (pop) {
-      App.ui.contextMenu.close();
-    }
-  });
-
-  function saveConvTags(convId, tagIds) {
-    App.api
-      .put('/api/chats/conversations/' + encodeURIComponent(convId), { tagIds: tagIds })
-      .then(function () {
-        return reloadState();
-      })
-      .catch(function (e) {
-        App.ui.toast((e && e.message) || 'tags_failed', 'error');
-      });
+    if (act === 'rename') App.chatsDialogs.openRenameConv(c);
+    else if (act === 'del') App.chatsDialogs.confirmDeleteConv(c);
   }
 
   /* ---------- 消息动作 ---------- */
@@ -3328,36 +2652,6 @@
     state.streamMsg = null;
   }
 
-  /* ---------- 供应商/模型 ---------- */
-  function openProviderDialog() {
-    App.ui.dialog({
-      head: '<h2 class="ui-dialog-title">' + t('chats.addProvider') + '</h2>',
-      body:
-        '<div class="ch-dlg-grid">' +
-        dlgField(t('chats.providerName'), '<input type="text" class="ui-input" data-ch-pv-name placeholder="' + escAttr(t('chats.providerNamePh')) + '" />') +
-        dlgField(t('chats.providerKey2'), '<input type="text" class="ui-input" data-ch-pv-key placeholder="' + escAttr(t('chats.providerKeyPh')) + '" />') +
-        dlgField(t('chats.providerBase'), '<input type="text" class="ui-input" data-ch-pv-base placeholder="' + escAttr(t('chats.providerBasePh')) + '" />') +
-        dlgField(t('chats.providerType'),
-          '<div class="ch-dlg-radios" data-ch-pv-type>' +
-          radioBtn('openai', 'OpenAI 兼容', 'openai', true) +
-          radioBtn('anthropic', 'Anthropic', 'anthropic', false) +
-          radioBtn('gemini', 'Gemini', 'gemini', false) +
-          '</div>') +
-        dlgField(t('chats.providerKeyLabel'), '<input type="password" class="ui-input" data-ch-pv-apikey placeholder="' + escAttr(t('chats.providerKeyPh2')) + '" autocomplete="off" />') +
-        '</div>',
-      foot:
-        '<button type="button" class="' +
-        App.ui.buttonClass('outline', 'sm') +
-        '" data-ch-pv-cancel>' +
-        t('chats.cancel') +
-        '</button>' +
-        '<button type="button" class="' +
-        App.ui.buttonClass('default', 'sm') +
-        '" data-ch-pv-save>' +
-        t('chats.save') +
-        '</button>',
-    });
-  }
   function dlgField(label, control) {
     return (
       '<div class="ch-dlg-field"><label class="ui-dialog-label">' +
@@ -3367,106 +2661,10 @@
       '</div>'
     );
   }
-  function radioBtn(val, label, group, checked) {
-    return (
-      '<button type="button" class="ch-dlg-radio' +
-      (checked ? ' is-on' : '') +
-      '" data-ch-pv-type-val="' +
-      val +
-      '">' +
-      label +
-      '</button>'
-    );
-  }
-  var providerTypeSel = 'openai';
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    var pv = el.closest('[data-ch-pv-type-val]');
-    if (pv) {
-      providerTypeSel = pv.getAttribute('data-ch-pv-type-val');
-      document.querySelectorAll('[data-ch-pv-type-val]').forEach(function (b) {
-        b.classList.toggle('is-on', b === pv);
-      });
-      return;
-    }
-    if (el.closest('[data-ch-pv-save]')) {
-      var name = val('[data-ch-pv-name]', '');
-      var key = val('[data-ch-pv-key]', '');
-      var base = val('[data-ch-pv-base]', '');
-      var apikey = val('[data-ch-pv-apikey]', '');
-      if (!key || !base) {
-        App.ui.toast(t('chats.providerRequired'), 'error');
-        return;
-      }
-      App.ui.closeDialog();
-      App.api
-        .post('/api/chats/providers', {
-          key: key,
-          name: name || key,
-          type: providerTypeSel,
-          baseUrl: base,
-          apiKey: apikey,
-          models: [],
-        })
-        .then(function () {
-          state.providerKey = key;
-          state.model = '';
-          return reloadState();
-        })
-        .catch(function (err) {
-          App.ui.toast((err && err.message) || 'provider_failed', 'error');
-          reloadState();
-        });
-      return;
-    }
-    if (el.closest('[data-ch-pv-cancel]')) App.ui.closeDialog();
-  });
   function val(sel, fb) {
     var x = document.querySelector(sel);
     return x ? x.value.trim() : fb;
   }
-
-  function openModelManualDialog() {
-    App.ui.dialog({
-      head: '<h2 class="ui-dialog-title">' + t('chats.typeModel') + '</h2>',
-      body:
-        '<label class="ui-dialog-label">' +
-        t('chats.model') +
-        '</label>' +
-        '<input type="text" class="ui-input" data-ch-manual-model value="' +
-        escAttr(state.model || '') +
-        '" autocomplete="off" />',
-      foot:
-        '<button type="button" class="' +
-        App.ui.buttonClass('outline', 'sm') +
-        '" data-ch-manual-cancel>' +
-        t('chats.cancel') +
-        '</button>' +
-        '<button type="button" class="' +
-        App.ui.buttonClass('default', 'sm') +
-        '" data-ch-manual-ok>' +
-        t('chats.save') +
-        '</button>',
-    });
-    var inp = document.querySelector('[data-ch-manual-model]');
-    if (inp) inp.focus();
-  }
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    if (el.closest('[data-ch-manual-ok]')) {
-      var v = val('[data-ch-manual-model]', '');
-      if (v) {
-        state.model = v;
-        persistPrefs();
-      }
-      App.ui.closeDialog();
-      rerender();
-      return;
-    }
-    if (el.closest('[data-ch-manual-cancel]')) App.ui.closeDialog();
-  });
 
   function fetchModels() {
     if (!state.providerKey) return;
@@ -3490,263 +2688,6 @@
       });
   }
 
-  /* ---------- 提示词 ---------- */
-  function openPromptDialog(id) {
-    var pr = id ? promptById(id) : null;
-    App.ui.dialog({
-      head: '<h2 class="ui-dialog-title">' + (pr ? t('chats.promptEdit') : t('chats.promptNew')) + '</h2>',
-      body:
-        '<div class="ch-dlg-grid">' +
-        dlgField(t('chats.promptName'), '<input type="text" class="ui-input" data-ch-pr-name value="' + escAttr((pr && pr.name) || '') + '" maxlength="40" />') +
-        dlgField(t('chats.promptCat'), '<input type="text" class="ui-input" data-ch-pr-cat value="' + escAttr((pr && pr.category) || '') + '" maxlength="20" />') +
-        '</div>' +
-        dlgField(
-          t('chats.promptContent'),
-          '<textarea class="ui-input ch-dlg-textarea" data-ch-pr-content rows="6" placeholder="' +
-            escAttr(t('chats.promptContentPh')) +
-            '">' +
-            esc((pr && pr.content) || '') +
-            '</textarea>'
-        ),
-      foot:
-        '<button type="button" class="' +
-        App.ui.buttonClass('outline', 'sm') +
-        '" data-ch-pr-cancel>' +
-        t('chats.cancel') +
-        '</button>' +
-        '<button type="button" class="' +
-        App.ui.buttonClass('default', 'sm') +
-        '" data-ch-pr-save>' +
-        t('chats.save') +
-        '</button>',
-    });
-  }
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    if (el.closest('[data-ch-pr-save]')) {
-      var name = val('[data-ch-pr-name]', '');
-      var content = val('[data-ch-pr-content]', '');
-      var cat = val('[data-ch-pr-cat]', '');
-      if (!name || !content) {
-        App.ui.toast(t('chats.promptRequired'), 'error');
-        return;
-      }
-      App.ui.closeDialog();
-      if (state._promptEditId) {
-        App.api
-          .put('/api/chats/prompts/' + encodeURIComponent(state._promptEditId), { name: name, content: content, category: cat })
-          .then(function () {
-            return reloadState();
-          })
-          .catch(function (err) {
-            App.ui.toast((err && err.message) || 'prompt_failed', 'error');
-          });
-      } else {
-        App.api
-          .post('/api/chats/prompts', { name: name, content: content, category: cat })
-          .then(function (res) {
-            state.promptId = (res && res.prompt && res.prompt.id) || state.promptId;
-            return reloadState();
-          })
-          .catch(function (err) {
-            App.ui.toast((err && err.message) || 'prompt_failed', 'error');
-          });
-      }
-      state._promptEditId = null;
-      return;
-    }
-    if (el.closest('[data-ch-pr-cancel]')) {
-      App.ui.closeDialog();
-      state._promptEditId = null;
-    }
-  });
-  function deletePrompt(id) {
-    var pr = promptById(id);
-    if (!pr) return;
-    App.ui.dialog({
-      head: '<h2 class="ui-dialog-title">' + t('chats.promptDelete') + '</h2>',
-      body:
-        '<p class="ui-dialog-desc">' +
-        tF('chats.deletePromptMsg', { name: esc(pr.name) }) +
-        '</p>',
-      foot:
-        '<button type="button" class="' +
-        App.ui.buttonClass('outline', 'sm') +
-        '" data-ch-prdl-cancel>' +
-        t('chats.cancel') +
-        '</button>' +
-        '<button type="button" class="' +
-        App.ui.buttonClass('destructive', 'sm') +
-        '" data-ch-prdl-ok>' +
-        t('chats.delete') +
-        '</button>',
-    });
-  }
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    if (el.closest('[data-ch-prdl-ok]')) {
-      var id = state.promptId;
-      App.ui.closeDialog();
-      if (!id) return;
-      var pid = id;
-      App.api
-        .del('/api/chats/prompts/' + encodeURIComponent(pid))
-        .then(function () {
-          if (state.promptId === pid) state.promptId = '';
-          reloadState();
-        })
-        .catch(function (err) {
-          App.ui.toast((err && err.message) || 'prompt_del_failed', 'error');
-        });
-      return;
-    }
-    if (el.closest('[data-ch-prdl-cancel]')) App.ui.closeDialog();
-  });
-  // 提示词编辑需记录当前编辑 id(打开时)
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    var pEdit = el.closest('[data-ch-prompt-edit]');
-    if (pEdit) state._promptEditId = pEdit.getAttribute('data-ch-prompt-edit');
-  });
-
-  /* ---------- MCP ---------- */
-  function openMcpDialog(id) {
-    var m = id ? (function () {
-      var list = mcps();
-      for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
-      return null;
-    })() : null;
-    state._mcpEditId = id || null;
-    state._mcpTestTools = (m && m.tools) || [];
-    App.ui.dialog({
-      head: '<h2 class="ui-dialog-title">' + (m ? t('chats.mcpEdit') : t('chats.mcpAdd')) + '</h2>',
-      body:
-        '<div class="ch-dlg-grid">' +
-        dlgField(t('chats.mcpName'), '<input type="text" class="ui-input" data-ch-mcp-f-name value="' + escAttr((m && m.name) || '') + '" maxlength="60" />') +
-        dlgField(
-          t('chats.mcpProtocol'),
-          '<div class="ch-dlg-radios" data-ch-mcp-f-protocol>' +
-          '<button type="button" class="ch-dlg-radio' +
-          (!m || m.protocol !== 'sse' ? ' is-on' : '') +
-          '" data-ch-mcp-protocol="http">' +
-          t('chats.mcpProtocolHttp') +
-          '</button>' +
-          '<button type="button" class="ch-dlg-radio' +
-          (m && m.protocol === 'sse' ? ' is-on' : '') +
-          '" data-ch-mcp-protocol="sse">' +
-          t('chats.mcpProtocolSse') +
-          '</button>' +
-          '</div>'
-        ) +
-        dlgField(t('chats.mcpUrl'), '<input type="text" class="ui-input" data-ch-mcp-f-url value="' + escAttr((m && m.url) || '') + '" placeholder="https://…" />') +
-        '</div>' +
-        '<div class="ch-mcp-dlg-tools" data-ch-mcp-f-tools>' +
-        '<div class="ch-mcp-dlg-head">' +
-        '<span>' +
-        t('chats.mcpTools') +
-        '</span>' +
-        '<button type="button" class="ch-link-btn" data-ch-mcp-f-test>' +
-        ic('refresh-cw', 'size-3') +
-        t('chats.mcpTest') +
-        '</button>' +
-        '</div>' +
-        '<div class="ch-mcp-dlg-tool-list" data-ch-mcp-f-tool-list>' +
-        (state._mcpTestTools && state._mcpTestTools.length
-          ? state._mcpTestTools
-              .map(function (t2) {
-                return '<div class="ch-mcp-dlg-tool"><span class="ch-mcp-dlg-tool-ic">' + ic('wrench', 'size-3.5') + '</span><span class="ch-mcp-dlg-tool-name">' + esc(t2.name || '') + '</span></div>';
-              })
-              .join('')
-          : '<div class="ch-mcp-dlg-empty">' + esc(t('chats.mcpNotest')) + '</div>') +
-        '</div>' +
-        '</div>',
-      foot:
-        '<button type="button" class="' +
-        App.ui.buttonClass('outline', 'sm') +
-        '" data-ch-mcp-f-cancel>' +
-        t('chats.cancel') +
-        '</button>' +
-        '<button type="button" class="' +
-        App.ui.buttonClass('default', 'sm') +
-        '" data-ch-mcp-f-save>' +
-        t('chats.save') +
-        '</button>',
-    });
-  }
-  var mcpProtocolSel = 'http';
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    var proto = el.closest('[data-ch-mcp-protocol]');
-    if (proto) {
-      mcpProtocolSel = proto.getAttribute('data-ch-mcp-protocol');
-      document.querySelectorAll('[data-ch-mcp-protocol]').forEach(function (b) {
-        b.classList.toggle('is-on', b === proto);
-      });
-      return;
-    }
-    if (el.closest('[data-ch-mcp-f-test]')) {
-      var name = val('[data-ch-mcp-f-name]', '') || t('chats.mcpTest');
-      var url = val('[data-ch-mcp-f-url]', '');
-      if (!url) {
-        App.ui.toast(t('chats.mcpUrlRequired'), 'error');
-        return;
-      }
-      App.api
-        .post('/api/chats/mcp/test', { name: name, protocol: mcpProtocolSel, url: url })
-        .then(function (res) {
-          state._mcpTestTools = (res && res.tools) || [];
-          var list = document.querySelector('[data-ch-mcp-f-tool-list]');
-          if (list) {
-            list.innerHTML = state._mcpTestTools.length
-              ? state._mcpTestTools
-                  .map(function (t2) {
-                    return '<div class="ch-mcp-dlg-tool"><span class="ch-mcp-dlg-tool-ic">' + ic('wrench', 'size-3.5') + '</span><span class="ch-mcp-dlg-tool-name">' + esc(t2.name || '') + '</span></div>';
-                  })
-                  .join('')
-              : '<div class="ch-mcp-dlg-empty">' + esc(t('chats.mcpNotools')) + '</div>';
-          }
-          App.ui.toast(tF('chats.mcpTestedTools', { n: state._mcpTestTools.length }));
-        })
-        .catch(function (err) {
-          App.ui.toast((err && err.message) || t('chats.mcpTestFailed'), 'error');
-        });
-      return;
-    }
-    if (el.closest('[data-ch-mcp-f-save]')) {
-      var mname = val('[data-ch-mcp-f-name]', '');
-      var murl = val('[data-ch-mcp-f-url]', '');
-      if (!mname || !murl) {
-        App.ui.toast(t('chats.mcpRequired'), 'error');
-        return;
-      }
-      var tools = state._mcpTestTools || [];
-      if (!Array.isArray(tools)) tools = [];
-      tools = tools.map(function (t2) {
-        return Object.assign({}, t2, { enabled: t2.enabled !== false });
-      });
-      var body = { name: mname, protocol: mcpProtocolSel, url: murl, tools: tools };
-      if (state._mcpEditId) body.id = state._mcpEditId;
-      App.ui.closeDialog();
-      App.api
-        .post('/api/chats/mcp', body)
-        .then(function () {
-          return reloadState();
-        })
-        .catch(function (err) {
-          App.ui.toast((err && err.message) || 'mcp_failed', 'error');
-        });
-      state._mcpEditId = null;
-      return;
-    }
-    if (el.closest('[data-ch-mcp-f-cancel]')) {
-      App.ui.closeDialog();
-      state._mcpEditId = null;
-    }
-  });
   function toggleMcp(id) {
     var m = null;
     mcps().forEach(function (x) {
@@ -3792,113 +2733,40 @@
         reloadState();
       });
   }
-  function deleteMcp(id) {
-    var m = null;
-    mcps().forEach(function (x) {
-      if (x.id === id) m = x;
-    });
-    if (!m) return;
-    App.ui.dialog({
-      head: '<h2 class="ui-dialog-title">' + t('chats.mcpDelete') + '</h2>',
-      body:
-        '<p class="ui-dialog-desc">' +
-        tF('chats.mcpDeleteMsg', { name: esc(m.name) }) +
-        '</p>',
-      foot:
-        '<button type="button" class="' +
-        App.ui.buttonClass('outline', 'sm') +
-        '" data-ch-mcpdl-cancel>' +
-        t('chats.cancel') +
-        '</button>' +
-        '<button type="button" class="' +
-        App.ui.buttonClass('destructive', 'sm') +
-        '" data-ch-mcpdl-ok>' +
-        t('chats.delete') +
-        '</button>',
-    });
-  }
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    if (el.closest('[data-ch-mcpdl-ok]')) {
-      var id = state._mcpDelId;
-      App.ui.closeDialog();
-      if (!id) return;
-      App.api
-        .del('/api/chats/mcp?key=' + encodeURIComponent(id))
-        .then(function () {
-          star: 0;
-          reloadState();
-        })
-        .catch(function (err) {
-          App.ui.toast((err && err.message) || 'mcp_del_failed', 'error');
-        });
-      return;
-    }
-    if (el.closest('[data-ch-mcpdl-cancel]')) App.ui.closeDialog();
-  });
-  document.addEventListener('click', function (e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    var mDel = el.closest('[data-ch-mcp-del]');
-    if (mDel) state._mcpDelId = mDel.getAttribute('data-ch-mcp-del');
-  });
-
   function closeMobileLeft() {
     if (window.innerWidth < 768) {
       state.leftOpen = false;
     }
   }
 
-  /* ---------- 工具折叠(流式原位展开) ---------- */
-  function toolExpand(row, key) {
-    row.classList.add('is-open');
-    var t = null;
-    var arr = (state.streamMsg && state.streamMsg.tools) || [];
-    for (var i = 0; i < arr.length; i++) {
-      if (key === '__streamtools__-' + (arr[i].id || i) || key === '__streamtools__') {
-        t = arr[i];
-        break;
-      }
-    }
-    if (!t && arr.length) t = arr[0];
-    if (t) {
-      var argsStr = '';
-      try {
-        argsStr = typeof t.arguments === 'string' ? t.arguments : JSON.stringify(t.arguments || {}, null, 2);
-      } catch (e) {
-        argsStr = '';
-      }
-      var resultStr = '';
-      if (t.result !== undefined && t.result !== null) {
-        resultStr = (t.result && t.result.error) ? '[err] ' + t.result.error : (typeof t.result === 'string' ? t.result : (function () {
-          try {
-            return JSON.stringify(t.result, null, 2);
-          } catch (e2) {
-            return String(t.result);
-          }
-        })());
-      }
-      var nameCol = row.querySelector('[data-tool-name]');
-      if (nameCol) nameCol.parentNode.setAttribute('data-stream-tool', '1');
-      var detail = document.createElement('div');
-      detail.className = 'cm-tool-detail';
-      detail.innerHTML =
-        '<div class="cm-tool-sec"><span class="cm-tool-sec-label">' +
-        esc(t('chats.toolArgs')) +
-        '</span><pre>' +
-        esc(argsStr) +
-        '</pre></div>' +
-        (resultStr !== ''
-          ? '<div class="cm-tool-sec"><span class="cm-tool-sec-label">' +
-            esc(t('chats.toolResult')) +
-            '</span><pre>' +
-            esc(resultStr.slice(0, 6000)) +
-            '</pre></div>'
-          : '');
-      row.appendChild(detail);
-    }
-  }
+  /* ---------- 跨文件共享上下文(dialogs.js / panels.js 经此访问主模块) ---------- */
+  App.chatsCtx = {
+    state: state,
+    t: t,
+    tF: tF,
+    ic: ic,
+    esc: esc,
+    escAttr: escAttr,
+    val: val,
+    dlgField: dlgField,
+    providers: providers,
+    prompts: prompts,
+    mcps: mcps,
+    conversations: conversations,
+    providerByKey: providerByKey,
+    promptById: promptById,
+    tagInst: tagInst,
+    modelOptions: modelOptions,
+    reloadState: reloadState,
+    persistPrefs: persistPrefs,
+    rerender: rerender,
+    resolveDefaults: resolveDefaults,
+    stopStreamSilent: stopStreamSilent,
+    readImageFile: readImageFile,
+    readTextFile: readTextFile,
+    parseTokens: parseTokens,
+    formatTokens: formatTokens,
+  };
 
   /* ---------- 模块入口 ---------- */
   function render(path, ctx) {

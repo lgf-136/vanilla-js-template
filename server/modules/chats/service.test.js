@@ -9,6 +9,7 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const serverApp = require('../../app');
+const AI = require('./ai');
 
 const { handleRequest } = serverApp;
 
@@ -145,6 +146,29 @@ test('provider: api_key 加密落库且不回明文', async () => {
     })
   );
   assert.equal(saved2.body.provider.hasApiKey, true, '未提供新 key 应保留旧 key');
+  // 回归:未显式传 models 时不得清空已有模型列表(配置 Key 等操作曾把内置模型表抹成 [])
+  const saved3 = await json(
+    await call('/chats/providers', {
+      method: 'POST',
+      body: { key: 'my-custom', apiKey: 'sk-secret-456' },
+    })
+  );
+  assert.equal(saved3.status, 200, JSON.stringify(saved3.body));
+  assert.deepEqual(saved3.body.provider.models, ['m1'], '未传 models 应保留原列表');
+
+  // 内置供应商:未传 models 时回退目录默认模型
+  const builtin = AI.catalog('deepseek');
+  const savedBuiltin = await json(
+    await call('/chats/providers', {
+      method: 'POST',
+      body: { key: 'deepseek', apiKey: 'sk-ds-test' },
+    })
+  );
+  assert.equal(savedBuiltin.status, 200, JSON.stringify(savedBuiltin.body));
+  assert.ok(
+    savedBuiltin.body.provider.models.length > 0,
+    '内置供应商未传 models 应回退目录默认(' + (builtin && builtin.models.join(',')) + ')'
+  );
 });
 
 test('prompts CRUD 与分组/标签整表替换', async () => {

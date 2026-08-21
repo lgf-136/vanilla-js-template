@@ -97,3 +97,27 @@
 - 复用模板内置工具类前先 `grep` 确认其定义内容，不要凭类名猜语义；
 - 涉及 token 别名/工具类定义变更时，检查是否已同步 ARCHITECTURE.md（§12 触发条件：
   新增/变更 token 契约）。
+
+## BUG-003: 模型下拉候选挤成一行——`.ch-model-opt` 类在 module.css 中无定义
+
+- 类型：ui-css
+- 严重度：中
+- 发现时间：2026-08-21
+- 修复提交：e667b6a (fix(chats): 修复流式对话致命 bug 并补齐供应商管理/联网搜索 Key/远程附件/移动端抽屉)
+- 涉及文件：`app/modules/chats/module.css`、`app/modules/chats/panels.js`
+- 涉及组件：chats 右栏模型组合框（`data-ch-model-list`）
+
+### 现象
+右栏模型列表渲染为 "llama3.3qwen3" 挤成一行的裸按钮，无内边距、无选中高亮。
+
+### 根因
+index.js/panels.js 渲染 `.ch-model-opt` 按钮，但 module.css 重写时只保留了 `.ch-model-combo/-top/-input/-list/-empty`，漏掉 `.ch-model-opt` 与其 `:hover/.is-on` 状态。
+
+### 修复过程
+在 `.ch-model-empty` 后补齐 `.ch-model-opt`（flex 布局、token 化 padding/radius/颜色）与 `:hover`（accent）、`.is-on`（secondary + 加粗）三态。
+
+### 验证
+浏览器实测模型列表逐行展示、悬停与选中态正常；`npm run lint` 通过（无硬编码颜色）。
+
+### 防坑指南
+模块 CSS 重写后，用 `grep -o 'class="[a-z-]*"' index.js | sort -u` 与 CSS 选择器做一次差集核对，确保 JS 输出的每个类都有样式来源。
