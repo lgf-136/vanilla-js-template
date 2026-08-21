@@ -44,6 +44,8 @@ import {
   historyHtml,
   runHtml,
 } from './hub-builder.js';
+// 副作用导入：事件委托监听器在 hub-events 求值时注册（无导出被消费，勿删）
+import './hub-events.js';
 
 /** 深链:打开 #/apihub?r=<key> 时自动选中对应路由 */
 function applyHashSelection() {
