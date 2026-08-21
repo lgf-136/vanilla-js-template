@@ -100,6 +100,17 @@
 - 新建/修改组件必须是**受控且可拓展组件**（见 `ARCHITECTURE.md` 3.7 铁律）：默认视觉以 **shadcn base UI + nova style + zinc color** 为基线，并全量响应主题面板所有选项（主题模式、基础色、强调色、风格、字体、圆角、菜单外观）；移植参考项目时不得直接复制其组件样式，必须改造为本项目统一 UI；默认视觉只允许来自 token 变量，禁止自带固定配色；颜色必须引用基础色/强调色驱动变量并带完整回退值（`var(--token, fallback)`），明暗两套主题、全部 8 套风格与不同圆角下自测无固定配色残留；
 - 涉及信息展示类组件（卡片、列表项等）必须遵循 `ARCHITECTURE.md` 3.6 节"反留白铁律"：默认使用 `--spacing-3`、数值类信息配图标、空状态必须有图标+引导文案。
 
+> **组件文件夹组织与拆分（防止单大文件回潮）**：
+> 公共组件一律「一组件一文件夹」，文件夹内 `index.js` 为入口（bootstrap 经动态 import() 按序加载，
+> 说明符须带 `./` 或经 baseURL 归一化）。实现预计超过 300 行（警戒区）时按形态拆分：
+> - **工具型**：纯逻辑伴生文件（如 color-picker/color.js 色彩数学）+ index.js UI 层；
+> - **容器型**：model(状态+单例注册表) / render / dialog / menu·popover / events / index；
+> - **kit 核心**：一控件族一文件（ui/core/：utils/form/dropdown/radio/feedback/context-menu/misc）。
+> 铁律：① `App.ui.*` 挂载面逐字稳定，拆分前后做挂载键 diff 与行为轨迹对照，消费方零改动；
+> ② 单例注册表放最底层文件防循环；③ 副作用文件（仅注册监听器）必须被入口显式导入并按原顺序排列；
+> ④ 路径接线三处同步：bootstrap 清单 / bundle-budget 首屏清单 / build.test dist 断言；
+> ⑤ 拆分自检四项同 §2 引用块。分层细则见 `ARCHITECTURE.md` 2.3.2。
+
 ## 5. 数据库变更规范
 
 - 新表命名：`[module]_[entity]`，子模块专属表：`[module]_[submodule]_[entity]`；

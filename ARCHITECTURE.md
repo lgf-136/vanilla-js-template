@@ -69,6 +69,8 @@ critical.css
 
 完整设计系统由 `bootstrap.js` 在鉴权核心之后加载 `tokens.css`、`semantic-tokens.css` 与 `utilities.css`；模块样式只在模块首次加载时注入。
 
+核心层（AUTH_CORE / APP_CORE 清单）经原生动态 `import()` 按清单顺序串行加载（ADR-002），说明符统一经 `new URL(src, document.baseURI)` 归一化——动态 import 的相对说明符必须带 `./` 前缀，裸路径会直接 TypeError（见 docs/bug/ui-js.md BUG-004）；`deps` 类 UMD 依赖（如 Chart.js）仍走经典 `<script>` 预注入。核心文件因此同样可用 ESM 组织内部结构。
+
 ### 2.2 Shell 与滚动契约
 
 `app/components/layout/shell.js` 是模板 Shell 的唯一渲染器，负责侧边栏、顶栏、设置 Sheet、工作空间菜单和用户菜单；业务模块只向 `[data-content-area]` 返回页面 HTML，不直接改 Shell。
@@ -139,6 +141,28 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 3. 手写文件的符号被其他切片调用时，用装配期注入收敛，不要反向 import 造成循环。
 
 服务端对应约定见第 4.2 节（routes 薄 + service IO 编排 + 纯逻辑兄弟文件）。
+
+### 2.3.2 公共 UI 组件目录组织（一组件一文件夹）
+
+`app/components/ui/` 下**一个组件一个文件夹，文件夹内 `index.js` 为入口**；组件经 bootstrap 核心层动态 `import()` 加载，因此内部用原生 ESM 组织，但对外契约与模块不同——**组件不调用 defineModule，而是挂载 `App.ui.<name>` / `App.ui.<family>.<method>` 命名空间**。
+
+三种形态与拆法（按组件内聚选择，不强求一致）：
+
+| 形态 | 实例 | 拆法 |
+|---|---|---|
+| 工具型（纯逻辑 + UI 薄壳） | color-picker | `color.js` 纯色彩数学 + `index.js` UI 层与命名空间挂载 |
+| 容器型（状态 + 视图 + 弹窗/菜单/事件） | data-table / group-tree / tag-picker | `model.js`(状态+单例注册表+纯逻辑) / `render.js` / `dialog.js` / `menu.js` 或 `popover.js` / `events.js` / `index.js` 装配 |
+| kit 核心（控件族集合） | ui.js → `core/` | 一控件族一文件：utils / form / dropdown / radio / feedback(toast+dialog+Esc) / context-menu / misc + `index.js` 装配 |
+
+硬性约束：
+
+1. **挂载面稳定铁律**：`App.ui.*` 挂载赋值逐字保留——成员一个不能少/多/改名，注入 `<style>` 内容逐字一致；消费方（其他组件/模块）零改动是验收标准。拆分前后做「挂载键集合 diff」与「桩 DOM 行为轨迹对照」。
+2. **单例注册表放最底层文件**（如 INSTANCES/overlay/tagPop 放 model.js）：避免高层装配文件与 events 相互 import 形成循环。
+3. **副作用文件必须被入口显式导入**：仅注册 document 监听器的文件（events/feedback/context-menu）若无人 import 则 ESM 不求值、监听器静默失效；多个副作用文件按原求值顺序在 index 显式按序导入（监听器注册顺序回归，harness 第一轮即抓到过）。
+4. **跨文件引用一律 import/export**，禁止经典脚本全局变量约定；组件私有状态不放 window。
+5. **宿主回调走 create(opts)/pickerHtml(opts) 注入**（受控组件铁律延伸）：组件内不硬编码文案与业务行为。
+6. **路径接线三处**：bootstrap 核心清单、bundle-budget 首屏清单、build.test dist 断言；动态 import 说明符必须带 `./` 或经 baseURL 归一化。
+7. **拆分自检四项同 2.3.1**：引用闭包含非调用形态、import 图无孤儿、行为零变更、单文件 ≤500 行（理想 ≤250）。
 
 ### 2.4 路由、设置与国际化
 
