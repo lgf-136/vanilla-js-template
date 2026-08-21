@@ -146,6 +146,11 @@
     params: { temperature: 0.7, topP: 0.8, topK: 1, maxTokens: '4k' },
     promptId: '',
 
+    // 折叠状态(渲染期读取,必须提前初始化)
+    openThink: {},
+    openTools: {},
+    openToolRow: {},
+
     // 流式
     streaming: false,
     abortCtrl: null,
@@ -316,9 +321,10 @@
         scrollMessagesBottom();
         return state.messages;
       })
-      .catch(function () {
+      .catch(function (e) {
         state.messagesLoading = false;
         rerender();
+        App.ui.toast((e && e.message) || t('chats.loadFailed'), 'error');
         return [];
       });
   }
@@ -348,10 +354,6 @@
       state.webSearch = Object.assign({ enabled: false, provider: 'tavily', maxResults: 3 }, prefs.webSearch);
     }
     if (typeof prefs.mcpEnabled === 'boolean') state.mcpEnabled = prefs.mcpEnabled;
-    // 移动端左右栏始终折叠为抽屉(不继承桌面展开态)
-    var isMobile = window.innerWidth < 768;
-    if (typeof prefs.rightOpen === 'boolean') state.rightOpen = isMobile ? false : prefs.rightOpen;
-    if (typeof prefs.leftOpen === 'boolean') state.leftOpen = isMobile ? false : prefs.leftOpen;
     if (prefs.rightTab) state.rightTab = prefs.rightTab;
   }
 
@@ -386,9 +388,7 @@
           promptId: state.promptId || '',
           webSearch: state.webSearch,
           mcpEnabled: state.mcpEnabled,
-          rightOpen: state.rightOpen,
           rightTab: state.rightTab,
-          leftOpen: state.leftOpen,
         },
       }).catch(function () {
         /* 静默 */
@@ -1097,7 +1097,7 @@
       '</span>' +
       '<div class="cm-body">' +
       (hasThink
-        ? renderThinkingBlock(m.id + '-t', tm, state.openThink[m.id + '-t'] !== false)
+        ? renderThinkingBlock(m.id + '-t', tm, !state.openThink || state.openThink[m.id + '-t'] !== false)
         : '') +
       renderToolList(tools, m.id + '-x', true) +
       (error ? '<div class="cm-error">' + ic('circle-x', 'size-3.5') + esc(error) + '</div>' : '') +
@@ -2772,6 +2772,9 @@
   function render(path, ctx) {
     state.t = ctx.t;
     state.locale = ctx.settings.locale;
+    // 展开态不持久化:每次进入模块按视口重置(桌面左栏展开/右栏折叠,移动端抽屉全收起)
+    state.leftOpen = window.innerWidth >= 768;
+    state.rightOpen = false;
     if (!state.boot) {
       bootLoad();
       return (

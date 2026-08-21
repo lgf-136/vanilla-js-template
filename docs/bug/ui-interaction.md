@@ -119,3 +119,35 @@ overlay/backdrop 类元素禁止用媒体查询无条件显示，必须绑定"�
 
 ### 预防
 修改渲染前状态的辅助函数必须在 `rerender()` 之前调用；凡"改状态 + 重渲染"成对出现时检查中间是否插入了其他状态变更。
+
+## BUG-013: 冷启动点击历史会话消息区永远空白——`state.openThink` 未初始化即被渲染路径读取
+
+- 类型：ui-interaction
+- 严重度：高（核心路径：查看历史对话）
+- 发现时间：2026-08-21
+- 修复提交：见本分支后续 fix(chats) 提交
+- 涉及文件：`app/modules/chats/index.js`
+- 涉及组件：`renderAssistantMsg()` / `renderThinkingBlock()` / `loadMessages()`
+
+### 现象
+页面刷新后（未发送过任何消息时）点击左侧历史会话，会话标题切换成功，但消息区一直空白；服务端日志显示部分会话的 messages 请求甚至没有发出。
+
+### 根因（两层）
+1. `renderAssistantMsg()` 读取 `state.openThink[m.id + '-t']`，而 `openThink` 此前只在 `startStream()`/思考折叠点击时才懒创建。冷启动直接渲染带思维链的历史消息时为 `undefined`，抛 TypeError 中断 `rerender()`——消息数据即使到达也无法上屏；
+2. `loadMessages()` 的 catch 静默吞错，控制台之外无任何提示，掩盖了上述渲染崩溃的排查线索。
+
+### 修复过程
+- `state` 声明处初始化 `openThink/openTools/openToolRow` 三个集合（渲染期读取的状态必须提前存在）；
+- `renderAssistantMsg` 读取处补 `!state.openThink ||` 兜底；
+- `loadMessages` 失败改为 toast 提示（复用 `chats.loadFailed` 文案），不再静默。
+
+### 附带修正：左右栏展开态不再持久化
+此前 `leftOpen/rightOpen` 存入服务端偏好，移动端测试留下的 `leftOpen:false` 会让桌面端进入模块时历史列表整体隐藏、且空状态下没有任何入口可展开（标题按钮仅在有选中会话时渲染）。现改为**每次进入模块按视口重置**：桌面左栏展开/右栏折叠，移动端全部折叠为抽屉（符合需求"左栏默认展开、右栏默认折叠、移动端汉堡式"）；`persistPrefs/applyPrefs` 移除这两个字段。
+
+### 验证
+浏览器冷启动实测：点击含思维链会话加载 2 条消息（思维链可见）、多模态会话图片附件正常、3 个历史会话全部可加载；lint/i18n/18 测试/build:budget 通过。
+
+### 防坑指南
+- 凡渲染函数读取的可变 state 字段，必须在 state 声明处初始化，禁止"用时再建"——渲染路径没有统一的 try/catch，一处 TypeError 会让整个区域停止上屏；
+- 数据加载的 catch 禁止完全静默，至少 toast 或 console.error，否则"请求没发/发了崩在渲染"无法区分；
+- 跨设备共享的持久化偏好里不要放"视口相关"的 UI 状态（如抽屉展开态），桌面/移动端互相污染，改为进入时按视口给默认值。
