@@ -28,12 +28,7 @@ const LEGACY_OVERSIZED = new Set([
   'app/core/i18n.js',
   'app/core/settings.js',
   'app/components/layout/shell.js',
-  'app/components/ui/color-picker/index.js',
-  'app/components/ui/data-table/index.js',
-  'app/components/ui/group-tree/index.js',
-  'app/components/ui/tag-picker/index.js',
-  'app/components/ui/ui.js',
-  'app/modules/chats/index.js',
+            'app/modules/chats/index.js',
   'app/modules/dashboard/index.js',
   'app/modules/tasks/index.js',
 ]);
