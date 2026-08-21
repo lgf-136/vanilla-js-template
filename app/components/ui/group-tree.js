@@ -184,6 +184,7 @@
   /* ---------- 渲染 ---------- */
   /** 统一转义（shared/escape.js，红线 13） */
   var esc = App.escape.escHtml;
+  var escAttr = App.escape.escAttr;
   function ic(name, cls) {
     try {
       return App.icon.iconSvg(name, { class: cls || 'size-3.5' });

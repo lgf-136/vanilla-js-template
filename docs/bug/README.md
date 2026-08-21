@@ -21,6 +21,7 @@
 | [ui-css.md](./ui-css.md) | CSS 工具类 / 编译机制（Tailwind 预构建产物陷阱、工具类映射错误） |
 | [ui-table.md](./ui-table.md) | 数据表格公共组件 `App.ui.dataTable`（排序/视图/过滤/选择） |
 | [ui-i18n.md](./ui-i18n.md) | i18n 文案缺失 / 三语言 key 不一致 |
+| [ui-js.md](./ui-js.md) | JS 运行时引用错误 / 加载机制与模块格式不匹配 |
 
 ## 记录模板
 
