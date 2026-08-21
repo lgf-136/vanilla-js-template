@@ -42,18 +42,25 @@
 
 ## 1. 硬性红线（不可协商，违反即视为错误提交）
 
-1. **禁止安装任何第三方运行时依赖**。`package.json` 的 `dependencies` / `devDependencies` 必须始终为 `{}`。平台部署 CLI（`wrangler` `vercel` `deno` `docker`）作为外部工具通过 `npx <cli>@版本`（如 `npx wrangler@3`；也可用 `@latest`，见 `justfile` 的 `deploy:*` 目标）临时调用，不写入依赖字段。
+> **元规则**：遇到无法满足红线的场景，停下来询问，禁止自行变通绕过。
+
+1. **禁止安装任何第三方运行时依赖**。`package.json` 的 `dependencies` / `devDependencies` 必须始终为 `{}`。平台部署 CLI（`wrangler` `vercel` `deno` `docker`）作为外部工具通过 `npx <cli>@版本`（如 `npx wrangler@3`；也可用 `@latest`，见 `justfile` 的 `deploy:*` 目标）临时调用，不写入依赖字段。同理，**禁止从 CDN 加载任何脚本/样式/字体**（`<script src="https://...">` 等外链同样视为第三方运行时代码）。
 2. **禁止使用浏览器内置弹窗/控件默认视觉**：`window.alert()` `window.confirm()` `window.prompt()`、原生 `<dialog>`/`<select>` 默认样式一律禁止，必须使用 `app/components/ui/` 的自研组件（`App.ui.*` 函数式渲染：`buttonClass` `dropdownContentClass` `toast` `radio` 等，见 `ARCHITECTURE.md` 2.3）。
-3. **禁止硬编码颜色/圆角/间距字面量**。颜色与圆角一律通过 `app/styles/tokens.css` 定义的 CSS 变量消费，新增视觉样式前先检查 token 是否已存在，缺失则先在 `tokens.css` 补充（颜色由 `just lint` 强制检查，含 CSS）；间距优先使用 `--spacing` 刻度（`calc(var(--spacing) * N)`），新增代码不得写死 rem/px 间距。
-4. **禁止跨模块直接 import**。`app/modules/<A>` 不得 import `app/modules/<B>` 内部任何文件。确需复用，先把代码"上移"到 `app/components/ui`（组件/渲染函数）或 `shared/`（纯函数/常量），再各自引用。
+3. **禁止硬编码颜色/圆角/间距字面量**。颜色与圆角一律通过 `app/styles/tokens.css` 定义的 CSS 变量消费，新增视觉样式前先检查 token 是否已存在，缺失则先在 `tokens.css` 补充（hex 字面量由 `just lint` 强制检查；rgb/hsl/oklch/命名色靠评审把关）；间距优先使用 `--spacing` 刻度（`calc(var(--spacing) * N)`），新增代码不得写死 rem/px 间距。
+4. **禁止跨模块直接 import**。`app/modules/<A>` 不得 import `app/modules/<B>` 内部任何文件。确需复用，先把代码"上移"到 `app/components/ui`（组件/渲染函数）或 `shared/`（纯函数/常量），再各自引用（`just lint` 自动扫描违规）。
 5. **页面级滚动只由壳层承担**：`html`/`body`/`#app` 不滚动，唯一的页面级滚动视口是壳层 `[data-slot="scroll-area-viewport"]`（`overflow-y: auto`）。业务模块如需工作台式多栏布局（如 apihub、settings），可在模块内部使用独立 `overflow-y: auto` 容器，但不得引入第二个页面级滚动视口。
 6. **新增业务模块禁止修改壳层文件**（`app/components/layout/*`、`app/core/app.js`、`app/core/bootstrap.js`）。唯一允许改动的登记点是 `app/modules/registry.js` 新增一行。
 7. **SQL 一律参数化，禁止字符串拼接拼 SQL**（参数统一经适配器绑定，见 `ARCHITECTURE.md` 4.3）。
 8. **敏感字段禁止明文入库**（清单见 `ARCHITECTURE.md` 4.6 节：用户信息、API Key、Token、需要落库的数据库凭证等）。新增涉及敏感字段的表/接口前，先确认加密/哈希方案，不确定就询问而不是自行明文实现。
 9. **禁止引入 ORM 或查询构建器依赖**，保持 SQL-first。
 10. **建表 SQL 单一来源、只增不改**：`server/db/schema.js` 是唯一事实来源，新表只追加 `CREATE TABLE IF NOT EXISTS`（幂等）；旧结构迁移在适配器 `migrateAppSettings` / `migrateAuthSessions` 中幂等执行，不得修改已合并的迁移逻辑。
-11. **组件必须是受控、可拓展且受主题设置面板全量控制（铁律，不可违反）**：任何新增/修改组件都必须提供清晰的配置/数据/状态接入点，禁止只适配单一页面或复制业务实现；默认视觉必须是当前项目统一的 **shadcn base UI + nova style + zinc color** 变体，尤其是移植参考项目模块时，**禁止直接照搬参考项目的组件样式**，必须改造为本项目的公共 UI 与 token 体系。组件必须随主题面板所有选项实时变化——主题模式（跟随系统/浅/深）、基础色、强调色、风格（nova…rhea）、正文字体、标题字体、圆角、菜单颜色/外观/强调。颜色一律经 `app/styles/tokens.css` 的 token 变量引用：主色系走强调色驱动变量（`--primary` / `--primary-foreground` / `--ring` / `--sidebar-primary` / `--chart-1..5`），表面/文字/边框系走基础色驱动变量（`--background` / `--card` / `--foreground` / `--border` 等）。**禁止任何硬编码颜色**（hex / rgb / hsl / oklch / 命名色，含注入 `<style>` 与内联 `style`），唯一例外是**用户显式指定的色值**（标签色、取色器预览、上下文菜单 hash 色等，且此类值走数据字段或 `--nova-palette-*`，不得写死在组件里）。每个 token 消费处必须提供回退值，形成完整回退链路：强调色 → 基础色 → 主题模式默认 → 兜底字面量，如 `var(--primary, var(--chart-1, oklch(62% .04 285)))`、`var(--font-heading-base, inherit)`、`border-radius: var(--radius, 0.5rem)`；阴影/遮罩一律走 tokens.css 的 `.shadow-*` 工具类。canvas 图表等非 DOM 渲染同样必须消费同一 token（初始化及 `app:themechange` 时经 `getComputedStyle` 读取 CSS 变量并重建，如 dashboard 的 `cssVar('--primary')` / `radiusPx()`）。
-12. **单文件行数硬性上限 500 行，超限必须拆分**。理想区间 100–250 行；300 行起进入警戒区，应开始规划拆分。React 组件保持 100–250 行，前端页面不超过 300 行，测试文件可放宽至 500 行。拆分必须按业务职责（UI / 业务逻辑 / 数据处理 / 类型定义）进行，禁止机械按行数切割；出现多职责混杂、嵌套过深、逻辑重复、难以测试或改动互相影响时，即使未超行数也应拆分。例外（可适当放宽）：自动生成的代码、类型声明文件（`.d.ts`）、静态配置/数据文件、数据库迁移脚本。
+11. **组件必须是受控、可拓展且受主题设置面板全量控制（铁律，不可违反）**：任何新增/修改组件必须提供清晰的配置/数据/状态接入点，禁止只适配单一页面或复制业务实现；默认视觉统一为 **shadcn base UI + nova style + zinc color** 变体，移植参考项目时禁止照搬其组件样式。颜色一律经 token 变量引用并带完整回退链路，**禁止硬编码颜色**（唯一豁免：用户显式指定的色值，且走数据字段或 `--nova-palette-*`）；阴影/遮罩一律走 `.shadow-*` 工具类；canvas 图表等非 DOM 渲染消费同一 token 并监听 `app:themechange` 重建。完整细则（主题面板选项对照表、回退链路示例、自测矩阵）见 `ARCHITECTURE.md` 3.7。
+12. **单文件行数硬性上限 500 行，超限必须拆分**。理想区间 100–250 行；300 行起进入警戒区，应开始规划拆分。React 组件保持 100–250 行，前端页面不超过 300 行，测试文件可放宽至 500 行。拆分必须按业务职责（UI / 业务逻辑 / 数据处理 / 类型定义）进行，禁止机械按行数切割；出现多职责混杂、嵌套过深、逻辑重复、难以测试或改动互相影响时，即使未超行数也应拆分。例外（可适当放宽）：自动生成的代码、类型声明文件（`.d.ts`）、静态配置/数据文件、数据库迁移脚本。行数由 `just lint` 自动统计；存量超标文件在 `scripts/lint.js` 的 `LEGACY_OVERSIZED` 清单挂账，只许减少不许增加，拆分后即从清单移除。
+13. **动态内容拼入 HTML 必须经统一转义函数**。本项目以 HTML 字符串渲染 UI，任何用户数据/外部数据（DB 值、接口响应、URL 参数等）插入模板前必须过转义 helper；helper 统一收敛到 `shared/`，禁止各模块私有复制多份 `esc()`；HTML 属性值必须转义并加引号，`innerHTML` 只允许接收受控模板。
+14. **真实凭证禁止入仓**：`.env` 只放本地开发占位值；token / 密码 / 私钥不得出现在源码、种子与演示数据、文档中；客户端存储（localStorage / sessionStorage）禁止存放明文敏感信息。
+15. **破坏性操作必须有界**：SQL 的 `DELETE` / `UPDATE` 必须带 WHERE 且经主键/唯一键限定；禁止 DROP 已发布的表/列（结构演进一律走第 10 条的追加式迁移）；批量删除类业务操作必须经 `ui-confirm` 二次确认。
+16. **新增路由默认必须经过会话门禁**：公开路由需显式标注并说明理由（见第 6 节），未标注理由的匿名可达路由视为越权漏洞。
+17. **用户可见文案一律走 i18n 三语言**（en / zh-CN / zh-TW），禁止在组件中硬编码文案（流程见第 7 节）。
 
 ---
 
@@ -120,6 +127,9 @@
 - [ ] 涉及 UI：未使用 `window.alert/confirm/prompt`，样式全部走 token
 - [ ] 涉及 UI 组件：已核对"受控组件铁律"（见 ARCHITECTURE.md 3.7）——颜色无硬编码（除用户指定色值）、token 消费均带回退值、主题面板各选项（强调色/基础色/风格/字体/圆角/明暗）切换均有可见响应
 - [ ] 涉及信息卡片类 UI：已核对"反留白铁律"
+- [ ] 涉及动态渲染：外部数据已经统一转义函数处理（无 XSS 面）
+- [ ] 安全：无真实凭证入仓；SQL 删改带 WHERE 边界；批量删除经 `ui-confirm`；新路由默认过会话门禁
+- [ ] 文案：用户可见文案全部进 i18n 三语言
 - [ ] Commit message 符合 Conventional Commits 且正文逐文件说明改动（见第 10 节）
 - [ ] 涉及 bug 修复：已查过 `docs/bug/` 既有记录、并按第 13 节写入对应类型文档
 
@@ -138,6 +148,8 @@
 - [ ] 组件是否受主题面板全量控制（受控组件铁律）？颜色是否有硬编码（唯一豁免：用户显式指定的色值）？token 消费是否都带回退值、形成完整回退链路？canvas 图表是否消费同一 token 并监听 `app:themechange` 重建？
 - [ ] 新表/新字段命名是否符合规范？敏感字段是否走加密？
 - [ ] SQL 是否参数化？是否有 N+1 查询可以合并？
+- [ ] 动态 HTML 是否统一转义？有无真实凭证入仓或客户端明文敏感信息？
+- [ ] DELETE/UPDATE 是否有界？公开路由是否显式标注理由？
 - [ ] 是否更新了三语言文案？
 - [ ] 是否需要同步更新 `ARCHITECTURE.md`（见第 12 节判断标准）？
 - [ ] Commit message 是否逐文件说明到方法/组件级别？

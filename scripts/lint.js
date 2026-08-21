@@ -1,18 +1,43 @@
 /**
  * scripts/lint.js — 手写规则脚本（`just lint`）
  *  - 语法：node --check（每个 .js 文件）
- *  - 禁用模式：window.alert/confirm/prompt、document.write、eval(、new Function(
- *  - 样式规则：app/ 下的 JS/CSS 禁止硬编码十六进制颜色（tokens.css 除外）
+ *  - 禁用模式：window.alert/confirm/prompt、document.write、eval(、new Function(、console.log(
+ *  - 样式规则：app/ 下的 JS/CSS 禁止硬编码十六进制颜色（tokens.css 除外；rgb/hsl/oklch 靠评审）
+ *  - 模块边界：app/modules/<A>/ 内部禁止 import app/modules/<B>/ 的文件（红线 4）
+ *  - 行数预算：单文件 ≤ 500 行（.js；存量超标文件在 LEGACY_OVERSIZED 挂账，只许减少不许增加，红线 12）
  *  - 格式：禁止 Tab 缩进
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, posix, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const ROOT = resolve(join(import.meta.dirname, '..'));
 
 const SCAN_DIRS = ['app', 'server', 'shared', 'scripts', 'tests', 'api'];
+
+/** 红线 12：单文件行数上限 */
+const MAX_LINES = 500;
+/** 第三方/自动生成产物，不参与行数与颜色检查 */
+const VENDORED_PREFIX = 'app/lib/';
+/** 存量超 500 行的技术债清单：拆分后必须从此处移除，禁止新增条目 */
+const LEGACY_OVERSIZED = new Set([
+  'app/core/app.js',
+  'app/core/i18n.js',
+  'app/core/settings.js',
+  'app/components/layout/shell.js',
+  'app/components/ui/color-picker.js',
+  'app/components/ui/data-table.js',
+  'app/components/ui/group-tree.js',
+  'app/components/ui/tag-picker.js',
+  'app/components/ui/ui.js',
+  'app/modules/apihub/index.js',
+  'app/modules/chats/index.js',
+  'app/modules/dashboard/index.js',
+  'app/modules/settings/index.js',
+  'app/modules/tasks/index.js',
+  'server/modules/apihub/service.js',
+]);
 
 const BANNED_PATTERNS = [
   { re: /\bwindow\.(alert|confirm|prompt)\s*\(/, msg: '禁止 window.alert/confirm/prompt（用 ui-toast / ui-confirm / ui-dialog）' },
@@ -62,6 +87,8 @@ function checkBanned(file) {
     if (src.includes('\t')) {
       errors.push(`禁止 Tab 缩进 → ${rel(file)}`);
     }
+    checkModuleBoundary(file, src);
+    checkLineBudget(file, src);
   }
   // 样式硬编码颜色检查（app/ 下 JS 内嵌样式与 CSS 文件）。
   // token 样式表与模板随附的静态 SVG/Chart.js 资源本身就是颜色定义，
@@ -76,6 +103,33 @@ function checkBanned(file) {
 
 function rel(file) {
   return file.startsWith(ROOT) ? file.slice(ROOT.length + 1) : file;
+}
+
+/** 红线 4：app/modules/<A>/ 内部文件不得 import app/modules/<B>/ 的文件 */
+function checkModuleBoundary(file, src) {
+  const relPosix = rel(file).split(sep).join('/');
+  const owner = relPosix.match(/^app\/modules\/([^/]+)\//);
+  if (!owner) return; // registry.js 等登记点不在模块目录内，不受限
+  const IMPORT_RE = /(?:from\s*|import\s*\(\s*)['"](\.[^'"]+)['"]/g;
+  let m;
+  while ((m = IMPORT_RE.exec(src))) {
+    const resolved = posix.normalize(posix.join(posix.dirname(relPosix), m[1]));
+    const target = resolved.match(/^app\/modules\/([^/]+)\//);
+    if (target && target[1] !== owner[1]) {
+      errors.push(`禁止跨模块 import（${owner[1]} → ${target[1]}），应上移 components/ui 或 shared/ → ${rel(file)}:${lineOf(src, m.index)}`);
+    }
+  }
+}
+
+/** 红线 12：单文件 ≤ 500 行（.js），存量超标文件挂账 LEGACY_OVERSIZED */
+function checkLineBudget(file, src) {
+  if (!file.endsWith('.js')) return;
+  const relPosix = rel(file).split(sep).join('/');
+  if (relPosix.startsWith(VENDORED_PREFIX) || LEGACY_OVERSIZED.has(relPosix)) return;
+  const lines = src.split('\n').length;
+  if (lines > MAX_LINES) {
+    errors.push(`单文件 ${lines} 行超过 ${MAX_LINES} 行上限，必须按业务职责拆分 → ${rel(file)}`);
+  }
 }
 
 function lineOf(src, index) {
@@ -96,5 +150,5 @@ if (errors.length) {
   console.error(`lint 失败（${errors.length} 个问题）：\n\n` + errors.join('\n\n'));
   process.exit(1);
 }
-console.log('[lint] 通过：语法 OK、无禁用模式、无硬编码颜色、无 Tab');
+console.log('[lint] 通过：语法 OK、无禁用模式、无硬编码颜色(hex)、模块边界 OK、行数预算 OK、无 Tab');
 process.exit(0);
