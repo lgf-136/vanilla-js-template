@@ -4,6 +4,7 @@
 
   /* 登录首屏只加载鉴权所需能力；完整 Shell 与业务公共组件在鉴权后加载。 */
   var AUTH_CORE = [
+    'shared/escape.js', // HTML 转义唯一实现（红线 13），必须最先就位
     'app/core/logger.js',
     'app/core/i18n.js',
     'app/components/ui/icons-data.js',

@@ -111,14 +111,8 @@
   /* ---------- 状态 ---------- */
   var state = { term: '', type: 'all', sort: 'asc' };
 
-  function esc(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
+  /** 统一转义（shared/escape.js，红线 13） */
+  var esc = App.escape.escHtml;
 
   function filteredApps() {
     var list = APPS.slice();

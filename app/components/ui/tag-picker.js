@@ -70,17 +70,10 @@
     return c;
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
-  function esc(s) {
-    return escapeHtml(s);
-  }
-  function escAttr(s) {
-    return escapeHtml(s);
-  }
+  /** 统一转义（shared/escape.js，红线 13）：保留局部别名以兼容既有调用点 */
+  var escapeHtml = App.escape.escHtml;
+  var esc = escapeHtml;
+  var escAttr = App.escape.escAttr;
   function ic(name) {
     try {
       return App.icon.iconSvg(name, { class: 'size-3.5' });

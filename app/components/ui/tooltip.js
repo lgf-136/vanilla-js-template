@@ -17,13 +17,8 @@
   var tipAnchor = null;
   var hideTimer = null;
 
-  function esc(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
+  /** 统一转义（shared/escape.js，红线 13） */
+  var esc = App.escape.escHtml;
 
   function show(anchor, text) {
     hide();

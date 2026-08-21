@@ -152,13 +152,8 @@
   }
 
   /* ---------- 转义 ---------- */
-  function esc(v) {
-    return String(v == null ? '' : v)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
+  /** 统一转义（shared/escape.js，红线 13） */
+  var esc = App.escape.escHtml;
 
   /* ---------- 单元格渲染 ---------- */
   function labelBadge(value) {

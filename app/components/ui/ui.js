@@ -159,19 +159,9 @@
   }
 
   // ---------- Avatar(个人资料头像:首字母/图标/Emoji/上传图片) ----------
-  function escAttr(v) {
-    return String(v == null ? '' : v)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
-  function escHtml(v) {
-    return String(v == null ? '' : v)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
+  // 统一转义入口：实现收敛在 shared/escape.js（红线 13），此处仅转发以保持 App.ui 公共 API 不变
+  var escAttr = App.escape.escAttr;
+  var escHtml = App.escape.escHtml;
   /** 渲染用户头像:image → 图片;emoji → 底色圆;icon → 图标圆;其余 → 用户名/邮箱首字母 */
   function avatarHtml(profile, sizeClass, large) {
     var avatar = profile && profile.avatar;

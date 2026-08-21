@@ -9,7 +9,7 @@
  * ============================================================ */
 'use strict';
 
-const ALLOWED_PREFIXES = ['/index.html', '/app/', '/public/'];
+const ALLOWED_PREFIXES = ['/index.html', '/app/', '/public/', '/shared/'];
 
 /** 判定请求路径是否为可对外提供的公开静态资源 */
 function isPublicAsset(pathname) {

@@ -1,7 +1,8 @@
 /**
  * scripts/lint.js — 手写规则脚本（`just lint`）
  *  - 语法：node --check（每个 .js 文件）
- *  - 禁用模式：window.alert/confirm/prompt、document.write、eval(、new Function(、console.log(
+ *  - 禁用模式：window.alert/confirm/prompt、document.write、eval(、new Function(、console.log(、
+ *    私有转义函数（统一收敛 shared/escape.js，红线 13）
  *  - 样式规则：app/ 下的 JS/CSS 禁止硬编码十六进制颜色（tokens.css 除外；rgb/hsl/oklch 靠评审）
  *  - 模块边界：app/modules/<A>/ 内部禁止 import app/modules/<B>/ 的文件（红线 4）
  *  - 行数预算：单文件 ≤ 500 行（.js；存量超标文件在 LEGACY_OVERSIZED 挂账，只许减少不许增加，红线 12）
@@ -45,6 +46,12 @@ const BANNED_PATTERNS = [
   { re: /\beval\s*\(/, msg: '禁止 eval(' },
   { re: /\bnew\s+Function\s*\(/, msg: '禁止 new Function(' },
   { re: /\bconsole\.log\s*\(/, msg: '禁止 console.log（仅客户端代码；scripts 与适配器日志允许）' },
+  {
+    re: /\bfunction\s+(esc|escHtml|escAttr|escapeHtml)\s*\(/,
+    msg: '禁止私有转义函数（统一使用 shared/escape.js 的 App.escape，红线 13）',
+    /** 唯一豁免：shared/escape.js 本体 */
+    exempt: (relPath) => relPath === 'shared/escape.js',
+  },
 ];
 
 /** console.log 禁令只适用于浏览器运行时代码 */
@@ -79,8 +86,9 @@ function checkBanned(file) {
   if (file.endsWith('scripts/lint.js')) return;
   const src = readFileSync(file, 'utf8');
   if (isJs) {
-    for (const { re, msg } of BANNED_PATTERNS) {
+    for (const { re, msg, exempt } of BANNED_PATTERNS) {
       if (msg.includes('console.log') && !file.startsWith(join(ROOT, 'app'))) continue;
+      if (exempt && exempt(rel(file))) continue;
       const m = src.match(re);
       if (m) errors.push(`${msg} → ${rel(file)}:${lineOf(src, m.index)}`);
     }
@@ -150,5 +158,5 @@ if (errors.length) {
   console.error(`lint 失败（${errors.length} 个问题）：\n\n` + errors.join('\n\n'));
   process.exit(1);
 }
-console.log('[lint] 通过：语法 OK、无禁用模式、无硬编码颜色(hex)、模块边界 OK、行数预算 OK、无 Tab');
+console.log('[lint] 通过：语法 OK、无禁用模式、转义函数已收敛、无硬编码颜色(hex)、模块边界 OK、行数预算 OK、无 Tab');
 process.exit(0);

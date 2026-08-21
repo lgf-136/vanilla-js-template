@@ -61,7 +61,7 @@ server/
   db/                    schema、作用域与 SQLite/Turso/D1 适配器
   modules/               auth、settings、apihub 路由与服务
   adapters/              Node、Vercel、Cloudflare、Deno 入口
-shared/                   前后端共享常量和校验
+shared/                   前后端共享常量、校验与 HTML 转义 helper
 scripts/                  开发、构建、lint、测试与预算检查
 public/                   公开静态资源
 ```

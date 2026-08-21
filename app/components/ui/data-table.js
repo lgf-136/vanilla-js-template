@@ -42,13 +42,8 @@
   var instances = {};
   var eventsBound = false;
 
-  function esc(v) {
-    return String(v == null ? '' : v)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
+  /** 统一转义（shared/escape.js，红线 13） */
+  var esc = App.escape.escHtml;
   function ic(name, cls) {
     return App.icon.iconSvg(name, { class: cls || '' });
   }

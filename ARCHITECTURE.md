@@ -40,7 +40,7 @@
 │   ├── adapters/              # Node、Vercel、Cloudflare、Deno 入口
 │   └── package.json           # 仅声明 server/ 内部使用 CommonJS
 ├── api/server.js              # Vercel 函数转接入口
-├── shared/                    # 前后端共享常量与校验
+├── shared/                    # 前后端共享常量、校验与 HTML 转义 helper（escape.js 运行时经 /shared/ 提供）
 ├── scripts/                   # dev、build、lint、test、预算与数据库脚本
 └── public/                    # 公开静态资源
 ```
@@ -57,6 +57,7 @@
 
 ```text
 critical.css
+  → escape(shared/escape.js，挂载 App.escape，全站唯一转义实现)
   → logger / i18n / icons-data / icons / api / auth / settings / ui
   → 若未登录：渲染 auth 登录卡片
   → 若已登录：tooltip / search / json-tree / color-picker / group-tree /
@@ -214,7 +215,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 
 ### 4.5 日志与静态资源
 
-`server/core/logging/logger.js` 提供服务端日志；API Hub 对请求历史和访问日志进行工作空间隔离、保留期和数量限制。`server/core/http/static.js` 只允许 `/`、`/index.html`、`/app/` 与 `/public/`，并阻断目录穿越、数据库、环境文件和服务端源码暴露；公开资源提供 MIME、安全头、ETag 和缓存策略。
+`server/core/logging/logger.js` 提供服务端日志；API Hub 对请求历史和访问日志进行工作空间隔离、保留期和数量限制。`server/core/http/static.js` 只允许 `/`、`/index.html`、`/app/`、`/public/` 与 `/shared/`，并阻断目录穿越、数据库、环境文件和服务端源码暴露；公开资源提供 MIME、安全头、ETag 和缓存策略。
 
 ### 4.6 敏感字段清单
 
@@ -235,7 +236,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 
 ## 5. 构建与体积预算
 
-`npm run build` 执行 `scripts/build.js`：清理并复制 `index.html`、`app/`、`public/` 到 `dist/`（`shared/` 是前后端共享常量的预留目录，当前无运行时引用，不复制），删除测试文件，对 JS/CSS 做零依赖安全压缩，并保持动态脚本路径不变。
+`npm run build` 执行 `scripts/build.js`：清理并复制 `index.html`、`app/`、`public/`、`shared/` 到 `dist/`（`shared/escape.js` 是运行时 HTML 转义 helper，随静态资源一并发布；其余共享常量仅供测试引用），删除测试文件，对 JS/CSS 做零依赖安全压缩，并保持动态脚本路径不变。
 
 `npm run build:budget` 的阈值为：
 

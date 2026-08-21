@@ -15,14 +15,8 @@
     return App.icon;
   };
 
-  /** 转义用户可控文本(工作空间名称) */
-  function esc(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
+  /** 转义用户可控文本(工作空间名称)——统一走 shared/escape.js（红线 13） */
+  var esc = App.escape.escHtml;
 
   /** 工作空间图标(按工作空间强调色着底) */
   function workspaceIcon(ws, boxClass) {

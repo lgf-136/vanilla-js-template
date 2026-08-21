@@ -239,19 +239,9 @@
     return contentSection(t, 'profile.title', 'profile.description', body);
   }
 
-  function escAttr(v) {
-    return String(v == null ? '' : v)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
-  function escHtml(v) {
-    return String(v == null ? '' : v)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
+  /** 统一转义（shared/escape.js，红线 13） */
+  var escAttr = App.escape.escAttr;
+  var escHtml = App.escape.escHtml;
 
   /* ---------- 账号 ---------- */
   var ACCOUNT_LANGUAGES = [

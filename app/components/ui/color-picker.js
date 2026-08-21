@@ -276,13 +276,8 @@
     }
   }
 
-  function escAttr(v) {
-    return String(v == null ? '' : v)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
+  /** 统一转义（shared/escape.js，红线 13） */
+  var escAttr = App.escape.escAttr;
 
   function copyText(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
