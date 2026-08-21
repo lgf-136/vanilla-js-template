@@ -38,6 +38,7 @@
   ];
   var appRuntimePromise = null;
 
+  /** 加载经典脚本（预留：deps 类 UMD 依赖；核心层一律走 loadScripts 动态 import） */
   function loadScript(src) {
     return new Promise(function (resolve, reject) {
       var script = document.createElement('script');
@@ -50,10 +51,12 @@
     });
   }
 
+  /** 加载核心层文件：原生动态 import()（ADR-002），保持清单顺序串行求值；
+   *  核心文件因此可用 ESM 组织内部结构（如 ui 组件目录的拆分）。 */
   function loadScripts(list) {
     return list.reduce(function (promise, src) {
       return promise.then(function () {
-        return loadScript(src);
+        return import(src);
       });
     }, Promise.resolve());
   }
