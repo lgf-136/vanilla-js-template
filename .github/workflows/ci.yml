@@ -37,6 +37,9 @@ jobs:
       - name: deps:check（无第三方依赖）
         run: just deps:check
 
+      - name: commit-msg（Conventional Commits + 逐文件正文）
+        run: just commit-check
+
       - name: lint
         run: just lint
 

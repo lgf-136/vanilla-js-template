@@ -47,6 +47,10 @@ test:
 deps-check:
     node scripts/deps-check.js
 
+# 提交信息校验（Conventional Commits + 逐文件正文，AGENTS.md 第 10 节；默认校验 HEAD）
+commit-check:
+    node scripts/commit-msg-check.js
+
 # 提交前全量门禁：依赖 + lint + 测试 + i18n + 体积预算（对应 AGENTS.md 第 9 节）
 check: deps-check lint test i18n-check build-budget
 
