@@ -9,7 +9,7 @@
 
 import { sidebarHtml } from './sidebar.js';
 import { headerHtml } from './header.js';
-import { renderSettingsSheet } from './sheet.js';
+import { renderSettingsSheet, rerenderSheetContent } from './sheet.js';
 
   function renderShell(settings, t, pathname, navItems, openSubmenus) {
     return (

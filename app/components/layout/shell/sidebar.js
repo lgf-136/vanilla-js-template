@@ -341,4 +341,4 @@
 
   // ---------- Header ----------
 
-export {  };
+export { sidebarHtml };

@@ -131,6 +131,5 @@
     );
   }
 
-  /** 完整 App Shell(侧边栏 + 顶栏 + 内容区) */
 
-export {  };
+export { headerHtml };

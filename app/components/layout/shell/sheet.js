@@ -222,4 +222,4 @@
     if (newScroll) newScroll.scrollTop = scrollTop;
   }
 
-export {  };
+export { renderSettingsSheet, rerenderSheetContent };
