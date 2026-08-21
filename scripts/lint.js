@@ -28,10 +28,10 @@ const LEGACY_OVERSIZED = new Set([
   'app/core/i18n.js',
   'app/core/settings.js',
   'app/components/layout/shell.js',
-  'app/components/ui/color-picker.js',
-  'app/components/ui/data-table.js',
-  'app/components/ui/group-tree.js',
-  'app/components/ui/tag-picker.js',
+  'app/components/ui/color-picker/index.js',
+  'app/components/ui/data-table/index.js',
+  'app/components/ui/group-tree/index.js',
+  'app/components/ui/tag-picker/index.js',
   'app/components/ui/ui.js',
   'app/modules/chats/index.js',
   'app/modules/dashboard/index.js',
@@ -112,7 +112,10 @@ function checkBanned(file) {
   // token 样式表与模板随附的静态 SVG/Chart.js 资源本身就是颜色定义，
   // 不应被当作业务组件样式重复改写。
   const tokenSheet = file.endsWith('tokens.css') || file.endsWith('semantic-tokens.css');
-  const staticColorAsset = file.endsWith(join('app', 'components', 'ui', 'icons.js')) || file.endsWith(join('app', 'lib', 'chart.umd.js'));
+  const staticColorAsset =
+      file.endsWith(join('app', 'components', 'ui', 'icons', 'index.js')) ||
+      file.endsWith(join('app', 'components', 'ui', 'icons', 'data.js')) ||
+      file.endsWith(join('app', 'lib', 'chart.umd.js'));
   if (file.startsWith(join(ROOT, 'app')) && !tokenSheet && !staticColorAsset) {
     const m = src.match(HEX_COLOR);
     if (m) errors.push(`禁止硬编码十六进制颜色（色值 ${m[0]}，应消费 tokens.css 变量）→ ${rel(file)}:${lineOf(src, m.index)}`);

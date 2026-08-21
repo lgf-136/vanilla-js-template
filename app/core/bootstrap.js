@@ -7,8 +7,8 @@
     'shared/escape.js', // HTML 转义唯一实现（红线 13），必须最先就位
     'app/core/logger.js',
     'app/core/i18n.js',
-    'app/components/ui/icons-data.js',
-    'app/components/ui/icons.js',
+    'app/components/ui/icons/data.js',
+    'app/components/ui/icons/index.js',
     'app/core/api.js',
     'app/core/auth.js',
     'app/core/settings.js',
@@ -16,18 +16,18 @@
   ];
 
   var APP_CORE = [
-    'app/components/ui/tooltip.js',
-    'app/components/ui/search-input.js',
-    'app/components/ui/json-tree.js',
-    'app/components/ui/color-picker.js',
-    'app/components/ui/group-tree.js',
-    'app/components/ui/tag-picker.js',
-    'app/components/ui/data-table.js',
-    'app/components/ui/avatar.js',
+    'app/components/ui/tooltip/index.js',
+    'app/components/ui/search-input/index.js',
+    'app/components/ui/json-tree/index.js',
+    'app/components/ui/color-picker/index.js',
+    'app/components/ui/group-tree/index.js',
+    'app/components/ui/tag-picker/index.js',
+    'app/components/ui/data-table/index.js',
+    'app/components/ui/avatar/index.js',
     'app/components/layout/shell.js',
     'app/core/app.js',
-    'app/components/ui/workspace.js',
-    'app/components/ui/profile.js',
+    'app/components/ui/workspace/index.js',
+    'app/components/ui/profile/index.js',
     'app/core/interactions.js',
   ];
 

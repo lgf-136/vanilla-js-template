@@ -26,6 +26,9 @@ test('production build contains the migrated template structure and valid JavaSc
   assert.equal(existsSync(join(DIST, 'app/core/bootstrap.js')), true);
   assert.equal(existsSync(join(DIST, 'app/components/layout/shell.js')), true);
   assert.equal(existsSync(join(DIST, 'app/components/ui/ui.js')), true);
+  assert.equal(existsSync(join(DIST, 'app/components/ui/icons/index.js')), true);
+  assert.equal(existsSync(join(DIST, 'app/components/ui/data-table/index.js')), true);
+  assert.equal(existsSync(join(DIST, 'app/components/ui/group-tree/index.js')), true);
   assert.equal(existsSync(join(DIST, 'app/modules/dashboard/index.js')), true);
   assert.equal(existsSync(join(DIST, 'app/modules/tasks/index.js')), true);
   assert.equal(existsSync(join(DIST, 'app/modules/apps/index.js')), true);
