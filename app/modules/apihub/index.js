@@ -21,6 +21,7 @@ import {
   view,
   load,
   findRoute,
+  setHashSelector,
   esc,
   escAttr,
   t,
@@ -190,6 +191,7 @@ registerPainters({
   list: routesHtml,
   side: sideSectionsHtml,
 });
+setHashSelector(applyHashSelection);
 
 /* ---------- 内容挂载后初始化(懒加载数据) ---------- */
 document.addEventListener('app:afterRender', function (ev) {

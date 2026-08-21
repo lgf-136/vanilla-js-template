@@ -30,6 +30,11 @@ import { renderFull } from './hub-view.js';
     lastHashSel: null,
   };
   var saveTimer = null;
+  /** 深链选择器由 index.js 装配期注入（依赖 builder 域的 selectRoute，避免 store→builder 环） */
+  var hashSelector = null;
+  function setHashSelector(fn) {
+    hashSelector = fn;
+  }
   var historyTimer = null;
   /* ---------- 工具 ---------- */
   function icon(name, cls) {
@@ -236,7 +241,7 @@ import { renderFull } from './hub-view.js';
         if (!state.secrets.apiKeys) state.secrets.apiKeys = {};
         state.loaded = true;
         state.error = null;
-        applyHashSelection();
+        if (hashSelector) hashSelector();
         renderFull();
       })
       .catch(function (e) {
@@ -295,4 +300,4 @@ import { renderFull } from './hub-view.js';
     return n;
   }
 
-export { AUTH_META, authLabel, authMode, authTokenIcon, bookmarkIcon, customById, descendants, esc, escAttr, findRoute, groupById, groupPublic, hasBody, historyTimer, icon, inlineSvg, isPublic, load, memberships, moduleOf, moduleT, overrideOf, persist, persistHistory, routeKeyOf, rowsToObj, saveTimer, state, t, tagById, tpl, treeChildren, treeCount, uid, view };
+export { setHashSelector, AUTH_META, authLabel, authMode, authTokenIcon, bookmarkIcon, customById, descendants, esc, escAttr, findRoute, groupById, groupPublic, hasBody, historyTimer, icon, inlineSvg, isPublic, load, memberships, moduleOf, moduleT, overrideOf, persist, persistHistory, routeKeyOf, rowsToObj, saveTimer, state, t, tagById, tpl, treeChildren, treeCount, uid, view };
