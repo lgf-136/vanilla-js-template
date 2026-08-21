@@ -53,6 +53,7 @@
 9. **禁止引入 ORM 或查询构建器依赖**，保持 SQL-first。
 10. **建表 SQL 单一来源、只增不改**：`server/db/schema.js` 是唯一事实来源，新表只追加 `CREATE TABLE IF NOT EXISTS`（幂等）；旧结构迁移在适配器 `migrateAppSettings` / `migrateAuthSessions` 中幂等执行，不得修改已合并的迁移逻辑。
 11. **组件必须是受控、可拓展且受主题设置面板全量控制（铁律，不可违反）**：任何新增/修改组件都必须提供清晰的配置/数据/状态接入点，禁止只适配单一页面或复制业务实现；默认视觉必须是当前项目统一的 **shadcn base UI + nova style + zinc color** 变体，尤其是移植参考项目模块时，**禁止直接照搬参考项目的组件样式**，必须改造为本项目的公共 UI 与 token 体系。组件必须随主题面板所有选项实时变化——主题模式（跟随系统/浅/深）、基础色、强调色、风格（nova…rhea）、正文字体、标题字体、圆角、菜单颜色/外观/强调。颜色一律经 `app/styles/tokens.css` 的 token 变量引用：主色系走强调色驱动变量（`--primary` / `--primary-foreground` / `--ring` / `--sidebar-primary` / `--chart-1..5`），表面/文字/边框系走基础色驱动变量（`--background` / `--card` / `--foreground` / `--border` 等）。**禁止任何硬编码颜色**（hex / rgb / hsl / oklch / 命名色，含注入 `<style>` 与内联 `style`），唯一例外是**用户显式指定的色值**（标签色、取色器预览、上下文菜单 hash 色等，且此类值走数据字段或 `--nova-palette-*`，不得写死在组件里）。每个 token 消费处必须提供回退值，形成完整回退链路：强调色 → 基础色 → 主题模式默认 → 兜底字面量，如 `var(--primary, var(--chart-1, oklch(62% .04 285)))`、`var(--font-heading-base, inherit)`、`border-radius: var(--radius, 0.5rem)`；阴影/遮罩一律走 tokens.css 的 `.shadow-*` 工具类。canvas 图表等非 DOM 渲染同样必须消费同一 token（初始化及 `app:themechange` 时经 `getComputedStyle` 读取 CSS 变量并重建，如 dashboard 的 `cssVar('--primary')` / `radiusPx()`）。
+12. **单文件行数硬性上限 500 行，超限必须拆分**。理想区间 100–250 行；300 行起进入警戒区，应开始规划拆分。React 组件保持 100–250 行，前端页面不超过 300 行，测试文件可放宽至 500 行。拆分必须按业务职责（UI / 业务逻辑 / 数据处理 / 类型定义）进行，禁止机械按行数切割；出现多职责混杂、嵌套过深、逻辑重复、难以测试或改动互相影响时，即使未超行数也应拆分。例外（可适当放宽）：自动生成的代码、类型声明文件（`.d.ts`）、静态配置/数据文件、数据库迁移脚本。
 
 ---
 
