@@ -99,7 +99,7 @@ const manifest = {
 };
 ```
 
-`app/modules/registry.js` 仅登记各模块的 `module.config.js`。清单加载后由 `App.registerModule()` 建立路由和侧边栏菜单（侧边栏子菜单、路由匹配与导航均读取 `meta.children`，无 `submodules` 字段）；实现文件通过原生 `<script>` 注入懒加载，以保持迁移模板的 IIFE 运行方式与动态路径兼容；`meta.deps` 中的脚本在模块脚本注入前按序预加载（如 dashboard 的 Chart.js）。
+`app/modules/registry.js` 仅登记各模块的 `module.config.js`。清单加载后由 `App.registerModule()` 建立路由和侧边栏菜单（侧边栏子菜单、路由匹配与导航均读取 `meta.children`，无 `submodules` 字段）；模块实现文件经原生动态 `import()` 懒加载（优先执行清单的 `loadRoot()`，未提供时按 `load` 路径兜底），因此模块内部可用 ESM 按业务域拆分文件（如 apihub 的 `hub-*.js`）；`meta.deps` 中的经典脚本（如 dashboard 的 Chart.js UMD）在实现加载前按序以 `<script>` 预注入。
 
 模块实现调用：
 

@@ -25,7 +25,8 @@
     return 'app/modules/' + id + '/';
   }
 
-  /** 加载脚本(纯 <script> 注入,兼容 file://) */
+  /** 加载经典脚本(纯 <script> 注入):仅用于 deps 预注入与 i18n 词典等非模块文件;
+   *  模块实现走动态 import()(见 ensureModuleLoaded,ADR-002)。 */
   function loadScript(src) {
     return new Promise(function (resolve, reject) {
       if (loadedScripts[src]) {
@@ -83,6 +84,7 @@
         order: Number(meta.order) || 0,
         route: meta.route || '/' + meta.id,
         load: meta.load || 'index.js',
+        loadRoot: typeof meta.loadRoot === 'function' ? meta.loadRoot : null,
         css: meta.css || null,
         deps: Array.isArray(meta.deps) ? meta.deps.slice() : [],
         i18n: meta.i18n || null,
@@ -167,7 +169,7 @@
       // 子模块实现未定义时才加载子模块文件(父模块可能已统一实现)
       if (!subImpls[ckey] && !impls[meta.id]) {
         tasks.push(
-          loadScript(moduleDir(meta.id) + child.load).then(function () {
+          import(moduleDir(meta.id) + child.load).then(function () {
             if (!subImpls[ckey] && !impls[meta.id]) {
               return waitFor(ckey).then(function () {
                 return undefined;
@@ -177,15 +179,19 @@
         );
       }
     } else if (!impls[meta.id]) {
+      // 模块实现经原生动态 import() 懒加载(ADR-002):支持 ESM 组织的模块内部拆分
+      // (如 apihub 的 hub-*.js);清单未提供 loadRoot 时按 load 路径兜底。
       tasks.push(
-        loadScript(moduleDir(meta.id) + meta.load).then(function () {
-          m.loaded = true;
-          if (!impls[meta.id]) {
-            return waitFor(meta.id).then(function () {
-              return undefined;
-            });
+        (meta.loadRoot ? meta.loadRoot() : import(moduleDir(meta.id) + meta.load)).then(
+          function () {
+            m.loaded = true;
+            if (!impls[meta.id]) {
+              return waitFor(meta.id).then(function () {
+                return undefined;
+              });
+            }
           }
-        })
+        )
       );
     } else {
       m.loaded = true;
