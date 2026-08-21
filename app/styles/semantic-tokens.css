@@ -31,4 +31,18 @@
   --nova-palette-teal: #14b8a6;
   --nova-palette-violet: #8b5cf6;
   --nova-palette-yellow: #eab308;
+
+  /* 遮罩（弹窗/抽屉背景；ARCHITECTURE 3.7.3：遮罩禁止在使用处写死 rgba） */
+  --overlay-bg: rgb(0 0 0 / 0.5);
+  --overlay-bg-soft: rgb(0 0 0 / 0.45);
+
+  /* 阴影颜色阶梯：几何形状由使用处自由定义，颜色一律消费本层 token */
+  --shadow-color-subtle: rgb(0 0 0 / 0.05);
+  --shadow-color-card: rgb(0 0 0 / 0.08);
+  --shadow-color-drawer: rgb(0 0 0 / 0.15);
+  --shadow-color-popover: rgb(0 0 0 / 0.18);
+  --shadow-color-raised: rgb(0 0 0 / 0.2);
+  --shadow-color-modal: rgb(0 0 0 / 0.3);
+  --shadow-color-dialog: rgb(0 0 0 / 0.35);
+  --shadow-color-thumb: rgb(0 0 0 / 0.45);
 }

@@ -172,7 +172,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 
 1. **颜色禁止硬编码**（hex / rgb / hsl / oklch / 命名色，含注入 `<style>` 与内联 `style`），一律经 token 变量引用；唯一豁免是**用户显式指定的色值**（标签色、取色器实时预览、上下文菜单 hash 色等），且此类值来自数据字段或 `--nova-palette-*`，不写死在组件代码里。
 2. **完整回退链路**：每个 token 消费处必须提供 fallback，顺序为「强调色 → 基础色 → 主题模式默认 → 兜底字面量」。例：`var(--primary, var(--chart-1, oklch(62% .04 285)))`、`var(--font-heading-base, inherit)`、`border-radius: var(--radius, 0.5rem)`、`border-color: color-mix(in oklab, var(--border) 60%, transparent)`。
-3. **阴影/遮罩**为通用着色，统一走 tokens.css 的 `.shadow-*` 工具类，组件内禁止写死 rgba。
+3. **阴影/遮罩**为通用着色：遮罩背景统一消费 `--overlay-bg` / `--overlay-bg-soft`，阴影颜色统一消费 semantic-tokens.css 的 `--shadow-color-*` 阶梯（几何形状由使用处按需定义），DOM 组件可叠加 tokens.css 的 `.shadow-*` 工具类；组件内禁止写死 rgba/rgb 颜色（`just lint` 强制扫描函数颜色）。
 4. **canvas 图表**不消费 DOM 规则，必须在初始化及 `app:themechange` 时经 `getComputedStyle(document.documentElement)` 读取同一 token（dashboard 的 `cssVar('--primary')`、`cssVar('--chart-2')`、`radiusPx()` 即此模式）并重建。
 5. 新组件须在 light/dark 两套主题、全部 8 套风格与不同圆角取值下自测，无固定配色残留；`just lint` 强制检查颜色字面量（含 CSS 与注入样式）。
 

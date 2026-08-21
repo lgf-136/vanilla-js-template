@@ -952,10 +952,10 @@
       '.tp-pick-count{font-size:.6875rem;color:var(--muted-foreground)}' +
       /* 弹窗 */
       /* 新建/重命名标签:锚定 Popover(Chrome 添加联系人风格) */
-      '.tp-pop{position:fixed;z-index:1100;width:min(20rem,calc(100vw - 2rem));max-height:calc(100vh - 2rem);overflow-y:auto;border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);box-shadow:0 10px 30px rgba(0,0,0,.18);border:1px solid var(--border);padding:.875rem;display:flex;flex-direction:column;gap:.5rem}' +
+      '.tp-pop{position:fixed;z-index:1100;width:min(20rem,calc(100vw - 2rem));max-height:calc(100vh - 2rem);overflow-y:auto;border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);box-shadow:0 10px 30px var(--shadow-color-popover);border:1px solid var(--border);padding:.875rem;display:flex;flex-direction:column;gap:.5rem}' +
       '.tp-pop-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}' +
-      '.tp-overlay{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}' +
-      '.tp-dialog{width:min(22rem,calc(100vw-2rem));max-height:calc(100vh-4rem);display:flex;flex-direction:column;border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);box-shadow:0 10px 30px rgba(0,0,0,.18);padding:.875rem}' +
+      '.tp-overlay{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:var(--overlay-bg-soft)}' +
+      '.tp-dialog{width:min(22rem,calc(100vw-2rem));max-height:calc(100vh-4rem);display:flex;flex-direction:column;border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);box-shadow:0 10px 30px var(--shadow-color-popover);padding:.875rem}' +
       '.tp-dialog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem}' +
       '.tp-dialog-title{font-size:.875rem;font-weight:600}' +
       '.tp-dialog-desc{font-size:.75rem;color:var(--muted-foreground);margin-bottom:.5rem}' +

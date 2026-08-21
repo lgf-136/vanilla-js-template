@@ -28,7 +28,7 @@
 .db-tab.is-active {
   background: var(--background);
   color: var(--foreground);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  box-shadow: 0 1px 2px var(--shadow-color-card);
 }
 .db-tab.is-disabled {
   pointer-events: none;

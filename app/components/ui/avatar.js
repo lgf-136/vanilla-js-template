@@ -24,7 +24,7 @@
     '.sp-avatar-tabs{display:inline-flex;gap:.25rem;padding:.125rem;border:1px solid var(--border);border-radius:var(--radius-md);background:color-mix(in oklab, var(--muted) 40%, transparent)}' +
     '.sp-avatar-tab{height:2rem;padding:0 .75rem;border:0;border-radius:calc(var(--radius-md) - 2px);background:transparent;color:var(--muted-foreground);font-size:.875rem;cursor:pointer;outline:none}' +
     '.sp-avatar-tab:hover{background:var(--muted);color:var(--foreground)}' +
-    '.sp-avatar-tab.is-active{background:var(--background);color:var(--foreground);box-shadow:0 1px 2px rgb(0 0 0 / .08),0 0 0 1px var(--border)}' +
+    '.sp-avatar-tab.is-active{background:var(--background);color:var(--foreground);box-shadow:0 1px 2px var(--shadow-color-card),0 0 0 1px var(--border)}' +
     '.sp-avatar-grid{display:grid;grid-template-columns:repeat(auto-fill,2.25rem);gap:.375rem}' +
     '.sp-avatar-opt{display:flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border:1px solid var(--border);border-radius:.5rem;background:var(--background);color:var(--foreground);font-size:1.125rem;line-height:1;cursor:pointer;outline:none}' +
     '.sp-avatar-opt:hover{background:var(--muted)}' +

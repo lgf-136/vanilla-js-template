@@ -37,7 +37,7 @@
 .ap-separator {
   height: 1px;
   background: var(--border);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  box-shadow: 0 1px 2px var(--shadow-color-subtle);
   margin-bottom: 1rem;
 }
 .ap-toolbar-left {
@@ -114,7 +114,7 @@
   transition: box-shadow 0.15s;
 }
 .ap-card:hover {
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
+  box-shadow: 0 4px 16px var(--shadow-color-card);
 }
 .ap-card-top {
   display: flex;

@@ -28,8 +28,8 @@
     '.ws-menu-actions svg{width:.875rem;height:.875rem}' +
     // 弹窗通用
     '.ws-dialog-mask{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:1rem}' +
-    '.ws-dialog-overlay{position:absolute;inset:0;background:rgb(0 0 0 / .5)}' +
-    '.ws-dialog-panel{position:relative;width:100%;max-width:28rem;max-height:calc(100vh - 2rem);overflow-y:auto;border:1px solid var(--border);border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);padding:1.25rem;box-shadow:0 20px 50px -12px rgb(0 0 0 / .35)}' +
+    '.ws-dialog-overlay{position:absolute;inset:0;background:var(--overlay-bg)}' +
+    '.ws-dialog-panel{position:relative;width:100%;max-width:28rem;max-height:calc(100vh - 2rem);overflow-y:auto;border:1px solid var(--border);border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);padding:1.25rem;box-shadow:0 20px 50px -12px var(--shadow-color-dialog)}' +
     '.ws-field-label{display:block;margin-bottom:.5rem;font-size:.875rem;font-weight:500}' +
     '.ws-input{width:100%;height:2.5rem;box-sizing:border-box;border:1px solid var(--input);border-radius:var(--radius-md);background:var(--background);color:var(--foreground);padding:0 .75rem;font-size:.875rem;outline:none}' +
     '.ws-input:focus-visible{border-color:var(--ring);box-shadow:0 0 0 2px color-mix(in oklab, var(--ring) 40%, transparent)}' +

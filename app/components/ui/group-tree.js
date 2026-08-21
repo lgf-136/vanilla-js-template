@@ -1071,8 +1071,8 @@
       '.gt-more svg{width:.875rem;height:.875rem}' +
       '.gt-empty{padding:.5rem .375rem;font-size:.75rem;color:var(--muted-foreground)}' +
       /* 弹窗 */
-      '.gt-overlay{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}' +
-      '.gt-dialog{width:min(22rem,calc(100vw-2rem));max-height:calc(100vh-4rem);display:flex;flex-direction:column;border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);box-shadow:0 10px 30px rgba(0,0,0,.18);padding:.875rem}' +
+      '.gt-overlay{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:var(--overlay-bg-soft)}' +
+      '.gt-dialog{width:min(22rem,calc(100vw-2rem));max-height:calc(100vh-4rem);display:flex;flex-direction:column;border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);box-shadow:0 10px 30px var(--shadow-color-popover);padding:.875rem}' +
       '.gt-dialog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem}' +
       '.gt-dialog-head .gt-more{opacity:1}' +
       '.gt-dialog-title{font-size:.875rem;font-weight:600}' +

@@ -958,7 +958,7 @@
       /* 分页 */
       '.dt-pagination{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:.5rem 1rem;border-top:1px solid var(--border);font-size:.875rem;color:var(--muted-foreground)}' +
       /* 批量操作浮动条(固定在视口底部居中,毛玻璃药丸) */
-      '.dt-bulk-bar{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:.5rem;border:1px solid var(--border);border-radius:calc(var(--radius,0.5rem)*1.5);background:color-mix(in oklab,var(--background) 95%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--foreground);box-shadow:0 16px 48px rgb(0 0 0/.18);padding:.5rem;transition:transform .3s ease}' +
+      '.dt-bulk-bar{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:.5rem;border:1px solid var(--border);border-radius:calc(var(--radius,0.5rem)*1.5);background:color-mix(in oklab,var(--background) 95%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--foreground);box-shadow:0 16px 48px var(--shadow-color-popover);padding:.5rem;transition:transform .3s ease}' +
       '.dt-bulk-bar:hover{transform:translateX(-50%) scale(1.05)}';
     document.head.appendChild(style);
   }

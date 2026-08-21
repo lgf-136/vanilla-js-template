@@ -17,7 +17,7 @@
   color: var(--popover-foreground);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  box-shadow: 0 10px 30px -8px rgb(0 0 0 / 0.3);
+  box-shadow: 0 10px 30px -8px var(--shadow-color-modal);
   padding: 0.25rem;
 }
 .hub-dd-menu.open {
@@ -137,7 +137,7 @@
   border-radius: 0.5rem;
   background: var(--popover);
   color: var(--popover-foreground);
-  box-shadow: 0 10px 30px -8px rgb(0 0 0 / 0.3);
+  box-shadow: 0 10px 30px -8px var(--shadow-color-modal);
   border: 1px solid var(--border);
 }
 

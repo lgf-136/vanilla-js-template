@@ -3,7 +3,8 @@
  *  - 语法：node --check（每个 .js 文件）
  *  - 禁用模式：window.alert/confirm/prompt、document.write、eval(、new Function(、console.log(、
  *    私有转义函数（统一收敛 shared/escape.js，红线 13）
- *  - 样式规则：app/ 下的 JS/CSS 禁止硬编码十六进制颜色（tokens.css 除外；rgb/hsl/oklch 靠评审）
+ *  - 样式规则：app/ 下的 JS/CSS 禁止硬编码十六进制颜色与 rgb/hsl/oklch 函数颜色
+ *    （tokens.css / semantic-tokens.css / icons.js / chart.umd.js 为定义层或静态资源，豁免；命名色靠评审）
  *  - 模块边界：app/modules/<A>/ 内部禁止 import app/modules/<B>/ 的文件（红线 4）
  *  - 行数预算：单文件 ≤ 500 行（.js 与 .css；存量超标 .js 在 LEGACY_OVERSIZED 挂账，只许减少不许增加，红线 12）
  *  - 格式：禁止 Tab 缩进
@@ -51,6 +52,18 @@ const BANNED_PATTERNS = [
     msg: '禁止私有转义函数（统一使用 shared/escape.js 的 App.escape，红线 13）',
     /** 唯一豁免：shared/escape.js 本体 */
     exempt: (relPath) => relPath === 'shared/escape.js',
+  },
+  {
+    // 带数字实参的函数颜色（'rgb(' + 变量拼接的格式串不匹配）；命名色仍靠评审把关
+    re: /\b(rgba?|hsla?|hwb|oklch|oklab|lab|lch)\s*\(\s*[0-9.]/,
+    msg: '禁止硬编码函数颜色 rgb/hsl/oklch（遮罩用 --overlay-bg*，阴影用 --shadow-color-*，其余补 token 后消费；红线 3 / ARCHITECTURE 3.7）',
+    /** 豁免：token 定义层与模板随附静态资源；且仅约束 app/ 运行时代码 */
+    exempt: (relPath) =>
+      !relPath.startsWith('app/') ||
+      relPath === 'app/styles/tokens.css' ||
+      relPath === 'app/styles/semantic-tokens.css' ||
+      relPath === 'app/components/ui/icons.js' ||
+      relPath === 'app/lib/chart.umd.js',
   },
 ];
 
@@ -161,5 +174,5 @@ if (errors.length) {
   console.error(`lint 失败（${errors.length} 个问题）：\n\n` + errors.join('\n\n'));
   process.exit(1);
 }
-console.log('[lint] 通过：语法 OK、无禁用模式、转义函数已收敛、无硬编码颜色(hex)、模块边界 OK、行数预算 OK、无 Tab');
+console.log('[lint] 通过：语法 OK、无禁用模式、转义函数已收敛、无硬编码颜色(hex/rgb/hsl/oklch)、模块边界 OK、行数预算 OK、无 Tab');
 process.exit(0);

@@ -10,7 +10,7 @@
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: rgb(0 0 0 / 0.5);
+  background: var(--overlay-bg);
   display: flex;
   justify-content: flex-end;
 }
@@ -21,7 +21,7 @@
   background: var(--background);
   display: flex;
   flex-direction: column;
-  box-shadow: -8px 0 32px rgb(0 0 0 / 0.15);
+  box-shadow: -8px 0 32px var(--shadow-color-drawer);
 }
 .tk-drawer-body {
   flex: 1;
@@ -110,7 +110,7 @@
   position: fixed;
   inset: 0;
   z-index: 90;
-  background: rgb(0 0 0 / 0.5);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;

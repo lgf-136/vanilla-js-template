@@ -93,7 +93,7 @@
 .hub-tab.is-on {
   background: var(--background);
   color: var(--foreground);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  box-shadow: 0 1px 2px var(--shadow-color-card);
 }
 .hub-tab svg {
   width: 0.8125rem;

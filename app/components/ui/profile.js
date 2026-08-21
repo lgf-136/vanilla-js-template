@@ -18,8 +18,8 @@
   var PF_STYLE =
     // 弹窗通用
     '.pf-dialog-mask{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:1rem}' +
-    '.pf-dialog-overlay{position:absolute;inset:0;background:rgb(0 0 0 / .5)}' +
-    '.pf-dialog-panel{position:relative;width:100%;max-width:26rem;max-height:calc(100vh - 2rem);overflow-y:auto;border:1px solid var(--border);border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);padding:1.25rem;box-shadow:0 20px 50px -12px rgb(0 0 0 / .35)}' +
+    '.pf-dialog-overlay{position:absolute;inset:0;background:var(--overlay-bg)}' +
+    '.pf-dialog-panel{position:relative;width:100%;max-width:26rem;max-height:calc(100vh - 2rem);overflow-y:auto;border:1px solid var(--border);border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);padding:1.25rem;box-shadow:0 20px 50px -12px var(--shadow-color-dialog)}' +
     '.pf-desc{display:block;margin-top:.25rem;font-size:.8125rem;color:var(--muted-foreground)}' +
     '.pf-list{display:flex;flex-direction:column;gap:.375rem;margin-top:1rem}' +
     '.pf-row{position:relative;display:flex;align-items:center}' +
