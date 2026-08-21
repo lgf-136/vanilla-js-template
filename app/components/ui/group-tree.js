@@ -260,7 +260,7 @@
       '" data-gt-caret="' +
       esc(node.id) +
       '" aria-label="' +
-      (expanded ? '折叠' : '展开') +
+      (expanded ? esc(L.collapse || '') : esc(L.expand || '')) +
       '">' +
       ic('chevron-right') +
       '</span>' +
@@ -274,7 +274,7 @@
       '<span class="gt-name" data-gt-name="' +
       esc(node.id) +
       '" data-tip="' +
-      (L.renameHint || '双击重命名') +
+      (L.renameHint || '') +
       '">' +
       esc(node.name) +
       '</span>' +
@@ -283,9 +283,9 @@
       '<button type="button" class="gt-more" data-gt-more="' +
       esc(node.id) +
       '" aria-label="' +
-      esc(L.menu || '菜单') +
+      esc(L.menu || '') +
       '" data-tip="' +
-      esc(L.menu || '菜单') +
+      esc(L.menu || '') +
       '">' +
       ic('ellipsis') +
       '</button>' +
@@ -321,11 +321,11 @@
         ? ''
         : '<div class="gt-filter">' +
           App.ui.searchInput.html({
-            placeholder: L.search || '搜索分组…',
+            placeholder: L.search || '',
             value: inst.filter,
             attrs: 'data-gt-filter',
             class: 'is-compact',
-            clearLabel: L.clear || '清除',
+            clearLabel: L.clear || '',
           }) +
           '</div>') +
       '<div class="gt-scroll" data-gt-body>' +
@@ -342,7 +342,7 @@
     if (!roots.length) {
       html +=
         '<div class="gt-empty">' +
-        (inst.filter ? esc(L.noMatch || '无匹配分组') : esc(L.empty || '暂无分组')) +
+        (inst.filter ? esc(L.noMatch || '') : esc(L.empty || '')) +
         '</div>';
     } else {
       html += roots
@@ -364,15 +364,15 @@
       });
     }
     return (
-      item('newchild', L.newChild || '新建子分组', 'plus') +
-      item('newsibling', L.newSibling || '新建同级', 'circle-plus') +
-      item('rename', L.rename || '重命名', 'pencil') +
-      item('move', L.moveTo || '移动到…', 'arrow-right') +
+      item('newchild', L.newChild || '', 'plus') +
+      item('newsibling', L.newSibling || '', 'circle-plus') +
+      item('rename', L.rename || '', 'pencil') +
+      item('move', L.moveTo || '', 'arrow-right') +
       App.ui.contextMenu.separator() +
-      item('icon', L.icon || '设置图标', 'image-plus') +
-      item('color', L.color || '设置颜色', 'palette') +
+      item('icon', L.icon || '', 'image-plus') +
+      item('color', L.color || '', 'palette') +
       App.ui.contextMenu.separator() +
-      item('del', L.delete || '删除', 'trash-2', true)
+      item('del', L.delete || '', 'trash-2', true)
     );
   }
 
@@ -387,7 +387,9 @@
       '<span class="gt-dialog-title">' +
       opts.title +
       '</span>' +
-      '<button type="button" class="gt-more" data-gt-dlg-close aria-label="关闭">' +
+      '<button type="button" class="gt-more" data-gt-dlg-close aria-label="' +
+      escAttr(opts.closeLabel || '') +
+      '">' +
       ic('x') +
       '</button>' +
       '</div>' +
@@ -415,10 +417,10 @@
     var L = inst.labels();
     return (
       '<button type="button" class="gt-btn gt-btn-ghost" data-gt-dlg-cancel>' +
-      esc(L.cancel || '取消') +
+      esc(L.cancel || '') +
       '</button>' +
       '<button type="button" class="gt-btn gt-btn-primary" data-gt-dlg-ok>' +
-      esc(okLabel || L.save || '保存') +
+      esc(okLabel || L.save || '') +
       '</button>'
     );
   }
@@ -442,7 +444,7 @@
       ((current || '') === '' ? ' is-on' : '') +
       '" data-gt-parent=""><span class="gt-opt-dot"></span>' +
       '<span class="gt-opt-name">' +
-      esc(L.rootGroup || '根目录(无)') +
+      esc(L.rootGroup || '') +
       '</span></label>';
     var forbid = excludeId ? descendants(nodes, excludeId) : [];
     function walk(parentId, depth) {
@@ -474,21 +476,22 @@
     var L = inst.labels();
     var picked = defaultParentId || '';
     var overlay = openDialog({
-      title: esc(L.newGroup || '新建分组'),
+      closeLabel: L.close || '',
+      title: esc(L.newGroup || ''),
       desc: '',
       body:
         '<div class="gt-field"><label>' +
-        esc(L.name || '名称') +
+        esc(L.name || '') +
         '</label>' +
         '<input type="text" class="gt-input" data-gt-name placeholder="' +
-        esc(L.namePlaceholder || '分组名称') +
+        esc(L.namePlaceholder || '') +
         '" /></div>' +
         '<div class="gt-field"><label>' +
-        esc(L.parentGroup || '父分组') +
+        esc(L.parentGroup || '') +
         '</label>' +
         parentOptionsHtml(inst, picked, null) +
         '</div>',
-      foot: dialogFoot(inst, L.save || '保存'),
+      foot: dialogFoot(inst, L.save || ''),
     });
     overlay.addEventListener('click', function (e) {
       var opt = e.target.closest ? e.target.closest('[data-gt-parent]') : null;
@@ -507,7 +510,7 @@
       function () {
         var name = overlay.querySelector('[data-gt-name]').value.trim();
         if (!name) {
-          toast(inst, L.nameRequired || '名称不能为空', true);
+          toast(inst, L.nameRequired || '', true);
           return false;
         }
         return true;
@@ -524,15 +527,16 @@
     if (!node) return;
     var L = inst.labels();
     var overlay = openDialog({
-      title: esc(L.rename || '重命名'),
+      closeLabel: L.close || '',
+      title: esc(L.rename || ''),
       desc: '',
       body:
         '<div class="gt-field"><label>' +
-        esc(L.name || '名称') +
+        esc(L.name || '') +
         '</label><input type="text" class="gt-input" data-gt-name value="' +
         esc(node.name) +
         '" /></div>',
-      foot: dialogFoot(inst, L.save || '保存'),
+      foot: dialogFoot(inst, L.save || ''),
     });
     bindDialogFoot(
       overlay,
@@ -543,7 +547,7 @@
       function () {
         var name = overlay.querySelector('[data-gt-name]').value.trim();
         if (!name) {
-          toast(inst, L.nameRequired || '名称不能为空', true);
+          toast(inst, L.nameRequired || '', true);
           return false;
         }
         return true;
@@ -562,15 +566,16 @@
     var L = inst.labels();
     var picked = node.parentId || '';
     var overlay = openDialog({
-      title: esc(L.moveTo || '移动到…'),
+      closeLabel: L.close || '',
+      title: esc(L.moveTo || ''),
       desc: '',
       body:
         '<div class="gt-field"><label>' +
-        esc(L.chooseParent || '选择目标分组') +
+        esc(L.chooseParent || '') +
         '</label>' +
         parentOptionsHtml(inst, picked, id) +
         '</div>',
-      foot: dialogFoot(inst, L.save || '保存'),
+      foot: dialogFoot(inst, L.save || ''),
     });
     overlay.addEventListener('click', function (e) {
       var opt = e.target.closest ? e.target.closest('[data-gt-parent]') : null;
@@ -592,12 +597,13 @@
     if (!node) return;
     var L = inst.labels();
     var overlay = openDialog({
-      title: esc(L.icon || '设置图标'),
+      closeLabel: L.close || '',
+      title: esc(L.icon || ''),
       desc: '',
       body:
         '<div class="gt-tabs">' +
         '<button type="button" class="gt-tab is-on" data-gt-ictab="icon">' +
-        esc(L.icon || '图标') +
+        esc(L.icon || '') +
         '</button>' +
         '<button type="button" class="gt-tab" data-gt-ictab="emoji">' +
         esc(L.emoji || 'Emoji') +
@@ -605,10 +611,10 @@
         '</div>' +
         '<div class="gt-icpanel" data-gt-icpanel="icon">' +
         App.ui.searchInput.html({
-          placeholder: L.iconSearch || '搜索图标…',
+          placeholder: L.iconSearch || '',
           attrs: 'data-gt-icsearch',
           class: 'is-compact gt-icsearch',
-          clearLabel: L.clear || '清除',
+          clearLabel: L.clear || '',
         }) +
         '<div class="gt-icgrid" data-gt-icgrid></div>' +
         '</div>' +
@@ -626,19 +632,19 @@
         '</div>' +
         '<div class="gt-emojirow">' +
         '<input type="text" class="gt-input" data-gt-emojiinput placeholder="' +
-        esc(L.emojiInput || '粘贴任意 Emoji…') +
+        esc(L.emojiInput || '') +
         '" />' +
         '<button type="button" class="gt-btn gt-btn-primary" data-gt-emojiok>' +
-        esc(L.apply || '应用') +
+        esc(L.apply || '') +
         '</button>' +
         '</div>' +
         '</div>',
       foot:
         '<button type="button" class="gt-btn gt-btn-danger" data-gt-icclear>' +
-        esc(L.clearIcon || '清除图标') +
+        esc(L.clearIcon || '') +
         '</button>' +
         '<button type="button" class="gt-btn gt-btn-ghost" data-gt-dlg-cancel>' +
-        esc(L.cancel || '取消') +
+        esc(L.cancel || '') +
         '</button>',
     });
     var grid = overlay.querySelector('[data-gt-icgrid]');
@@ -713,20 +719,21 @@
     if (!node) return;
     var L = inst.labels();
     var overlay = openDialog({
-      title: esc(L.color || '设置颜色'),
+      closeLabel: L.close || '',
+      title: esc(L.color || ''),
       desc: '',
       body: '<div class="gt-colorwrap"></div>',
       foot:
         '<button type="button" class="gt-btn gt-btn-ghost" data-gt-dlg-cancel>' +
-        esc(L.cancel || '取消') +
+        esc(L.cancel || '') +
         '</button>',
     });
     var wrap = overlay.querySelector('.gt-colorwrap');
     wrap.innerHTML = App.ui.colorPicker.pickerHtml(node.color || '', {
       showClear: true,
-      clearLabel: L.clearColor || '清除颜色',
-      applyLabel: L.apply || '应用',
-      copiedLabel: L.copied || '已复制',
+      clearLabel: L.clearColor || '',
+      applyLabel: L.apply || '',
+      copiedLabel: L.copied || '',
       onPick: function (value) {
         if (typeof inst.opts.onColorChange === 'function') inst.opts.onColorChange(id, value);
         closeDialog();
@@ -740,9 +747,9 @@
     if (scope) {
       scope._cpkOpts = {
         showClear: true,
-        clearLabel: L.clearColor || '清除颜色',
-        applyLabel: L.apply || '应用',
-        copiedLabel: L.copied || '已复制',
+        clearLabel: L.clearColor || '',
+        applyLabel: L.apply || '',
+        copiedLabel: L.copied || '',
         onPick: function (value) {
           if (typeof inst.opts.onColorChange === 'function') inst.opts.onColorChange(id, value);
           closeDialog();
@@ -760,15 +767,16 @@
     if (!node) return;
     var L = inst.labels();
     var overlay = openDialog({
-      title: esc(L.deleteConfirm || '删除确认'),
-      desc: esc((L.deleteMsg || '确定删除「{name}」及其子分组?路由不受影响。').split('{name}').join(node.name)),
+      closeLabel: L.close || '',
+      title: esc(L.deleteConfirm || ''),
+      desc: esc((L.deleteMsg || '').split('{name}').join(node.name)),
       body: '',
       foot:
         '<button type="button" class="gt-btn gt-btn-ghost" data-gt-dlg-cancel>' +
-        esc(L.cancel || '取消') +
+        esc(L.cancel || '') +
         '</button>' +
         '<button type="button" class="gt-btn gt-btn-danger" data-gt-dlg-ok>' +
-        esc(L.delete || '删除') +
+        esc(L.delete || '') +
         '</button>',
     });
     bindDialogFoot(overlay, function () {

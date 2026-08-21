@@ -966,7 +966,7 @@
         try {
           staticBody = JSON.parse(overlay.querySelector('[data-hub-f-static]').value || '{}');
         } catch (e2) {
-          App.ui.toast('JSON 格式错误', 'error');
+          App.ui.toast(t('apihub.jsonInvalid'), 'error');
           return;
         }
       }
@@ -1190,6 +1190,11 @@
         copied: t('apihub.copied'),
         menu: t('apihub.menu'),
         renameHint: t('apihub.renameHint'),
+        expand: t('apihub.expand'),
+        collapse: t('apihub.collapse'),
+        close: t('apihub.close'),
+        copyTip: t('apihub.copyTip'),
+        pickerHint: t('apihub.pickerHint'),
       },
       count: function (node) {
         return treeCount('group', node.id);
@@ -1275,6 +1280,9 @@
         cancel: t('apihub.cancel'),
         save: t('apihub.save'),
         copied: t('apihub.copied'),
+        searchCreate: t('apihub.searchCreate'),
+        copyTip: t('apihub.copyTip'),
+        pickerHint: t('apihub.pickerHint'),
       },
       count: function (id) {
         if (id === null) {

@@ -207,18 +207,18 @@
       '<div class="tp-manager">' +
       '<div class="tp-search">' +
       App.ui.searchInput.html({
-        placeholder: L.searchTags || '搜索标签…',
+        placeholder: L.searchTags || '',
         value: filter,
         attrs: 'data-tp-search',
         class: 'is-compact',
-        clearLabel: L.clear || '清除',
+        clearLabel: L.clear || '',
       }) +
       '</div>' +
       '<div class="tp-colorbar" data-tp-colorbar>' +
       '<button type="button" class="tp-swatch' +
       (colorF === '' ? ' is-on' : '') +
       '" data-tp-color="" data-tip="' +
-      escAttr(L.allColors || '全部颜色') +
+      escAttr(L.allColors || '') +
       '" style="background:conic-gradient(from 0deg,var(--nova-palette-rose),var(--nova-palette-amber),var(--nova-palette-lime),var(--nova-palette-cyan),var(--nova-palette-indigo),var(--nova-palette-purple),var(--nova-palette-rose))" aria-label=""></button>' +
       PALETTE.map(function (name) {
         return (
@@ -241,7 +241,7 @@
       '" data-tp-clear>' +
       '<span class="tp-hash tp-hash-root">#</span>' +
       '<span class="tp-name">' +
-      esc(L.allTags || '全部标签') +
+      esc(L.allTags || '') +
       '</span>' +
       '<span class="tp-count">' +
       taggedCount +
@@ -252,7 +252,7 @@
       '" data-tp-none>' +
       '<span class="tp-hash tp-hash-root">#</span>' +
       '<span class="tp-name">' +
-      esc(L.untagged || '未标记') +
+      esc(L.untagged || '') +
       '</span>' +
       '<span class="tp-count">' +
       untaggedCount +
@@ -261,7 +261,7 @@
     if (!list.length) {
       html +=
         '<div class="tp-empty">' +
-        (filter || colorF ? esc(L.noMatch || '无匹配标签') : esc(L.empty || '暂无标签')) +
+        (filter || colorF ? esc(L.noMatch || '') : esc(L.empty || '')) +
         '</div>';
     } else {
       list.forEach(function (t) {
@@ -282,7 +282,7 @@
       '" data-tp-tag="' +
       escAttr(t.id) +
       '" data-tip="' +
-      escAttr(L.renameHint || '双击重命名,右键更多操作') +
+      escAttr(L.renameHint || '') +
       '">' +
       '<span class="tp-hash" style="' +
       (col ? 'color:' + col + ';' : '') +
@@ -296,9 +296,9 @@
       '<button type="button" class="tp-more" data-tp-more="' +
       escAttr(t.id) +
       '" aria-label="' +
-      escAttr(L.menu || '菜单') +
+      escAttr(L.menu || '') +
       '" data-tip="' +
-      escAttr(L.menu || '菜单') +
+      escAttr(L.menu || '') +
       '">' +
       ic('ellipsis') +
       '</button>' +
@@ -315,10 +315,10 @@
       });
     }
     return (
-      item('rename', L.rename || '重命名', 'pencil') +
-      item('color', L.color || '设置颜色', 'palette') +
+      item('rename', L.rename || '', 'pencil') +
+      item('color', L.color || '', 'palette') +
       App.ui.contextMenu.separator() +
-      item('del', L.delete || '删除', 'trash-2', true)
+      item('del', L.delete || '', 'trash-2', true)
     );
   }
 
@@ -341,11 +341,11 @@
       '">' +
       '<div class="tp-picker-search">' +
       App.ui.searchInput.html({
-        placeholder: L.searchTags || '搜索或创建标签…',
+        placeholder: L.searchCreate || '',
         value: q,
         attrs: 'data-tp-pick-search',
         class: 'is-compact',
-        clearLabel: L.clear || '清除',
+        clearLabel: L.clear || '',
       }) +
       '</div>' +
       '<div class="tp-pick-list" data-tp-pick-list>';
@@ -356,14 +356,14 @@
         ic('plus') +
         '</span>' +
         '<span class="tp-opt-name">' +
-        esc(L.createTag || '创建标签') +
+        esc(L.createTag || '') +
         ' "<b>' +
         escapeHtml(q.trim()) +
         '</b>"</span>' +
         '</button>';
     }
     if (!list.length && !canCreate) {
-      html += '<div class="tp-empty">' + esc(L.empty || '暂无标签') + '</div>';
+      html += '<div class="tp-empty">' + esc(L.empty || '') + '</div>';
     } else {
       list.forEach(function (t) {
         var on = pickedIds.indexOf(t.id) !== -1;
@@ -390,10 +390,10 @@
       '</div>' +
       '<div class="tp-pick-foot">' +
       '<span class="tp-pick-count">' +
-      (pickedIds.length ? pickedIds.length + ' ' + esc(L.selected || '已选') : esc(L.noneSelected || '未选择')) +
+      (pickedIds.length ? pickedIds.length + ' ' + esc(L.selected || '') : esc(L.noneSelected || '')) +
       '</span>' +
       '<button type="button" class="tp-btn" data-tp-done>' +
-      esc(L.done || '完成') +
+      esc(L.done || '') +
       '</button>' +
       '</div>' +
       '</div>';
@@ -422,10 +422,10 @@
       '</div>' +
       '<div class="tp-dialog-foot">' +
       '<button type="button" class="tp-btn" data-tp-dlg-close>' +
-      esc(opts.cancelLabel || '取消') +
+      esc(opts.cancelLabel || '') +
       '</button>' +
       '<button type="button" class="tp-btn tp-btn-primary" data-tp-dlg-ok>' +
-      esc(opts.okLabel || '确定') +
+      esc(opts.okLabel || '') +
       '</button>' +
       '</div>' +
       '</div>';
@@ -445,12 +445,12 @@
   /** 标签名合法性:非空、长度、重名(忽略大小写) */
   function validateName(inst, name, selfId, requiredLabel) {
     var L = inst.labels();
-    if (!name) return L.nameRequired || '名称不能为空';
-    if (name.length > 40) return (L.nameTooLong || '名称过长') + ' (40)';
+    if (!name) return L.nameRequired || '';
+    if (name.length > 40) return (L.nameTooLong || '') + ' (40)';
     var dup = inst.nodes().some(function (t) {
       return t.id !== selfId && t.name.toLowerCase() === name.toLowerCase();
     });
-    if (dup) return L.nameExists || '已存在同名标签';
+    if (dup) return L.nameExists || '';
     return '';
   }
 
@@ -462,7 +462,7 @@
     return (
       '<div class="tp-pop-head">' +
       '<span class="tp-dialog-title">' +
-      esc(isNew ? L.newTag || '新建标签' : L.rename || '重命名标签') +
+      esc(isNew ? L.newTag || '' : L.rename || '') +
       '</span>' +
       '<button type="button" class="tp-dlg-x" data-tp-dlg-close aria-label="">' +
       ic('x') +
@@ -473,15 +473,15 @@
         : '') +
       '<div class="tp-dialog-body">' +
       '<div class="tp-field"><label>' +
-      esc(L.name || '名称') +
+      esc(L.name || '') +
       '</label>' +
       '<input type="text" class="tp-input" data-tp-name placeholder="' +
-      escAttr(L.tagNamePlaceholder || '标签名称') +
+      escAttr(L.tagNamePlaceholder || '') +
       '" value="' +
       escAttr(curName) +
       '" maxlength="40" autocomplete="off" /></div>' +
       '<div class="tp-field"><label>' +
-      esc(L.color || '颜色') +
+      esc(L.color || '') +
       '</label>' +
       '<div class="tp-swatches" data-tp-swatches>' +
       PALETTE.map(function (name) {
@@ -505,7 +505,7 @@
       '</div>' +
       (picked && PALETTE.indexOf(picked) === -1
         ? '<div class="tp-field" data-tp-custom-row><label>' +
-          esc(L.customColor || '自定义颜色') +
+          esc(L.customColor || '') +
           '</label><input type="text" class="tp-input" data-tp-hex placeholder="&#35;ff0000" value="' +
           escAttr(picked) +
           '" spellcheck="false" /></div>'
@@ -513,10 +513,10 @@
       '</div>' +
       '<div class="tp-dialog-foot">' +
       '<button type="button" class="tp-btn" data-tp-dlg-close>' +
-      esc(L.cancel || '取消') +
+      esc(L.cancel || '') +
       '</button>' +
       '<button type="button" class="tp-btn tp-btn-primary" data-tp-dlg-ok>' +
-      esc(L.save || '保存') +
+      esc(L.save || '') +
       '</button>' +
       '</div>'
     );
@@ -571,7 +571,7 @@
             div.setAttribute('data-tp-custom-row', '');
             div.innerHTML =
               '<label>' +
-              escapeHtml(L.customColor || '自定义颜色') +
+              escapeHtml(L.customColor || '') +
               '</label><input type="text" class="tp-input" data-tp-hex value="' +
               escAttr(val || '') +
               '" spellcheck="false" />';
@@ -583,7 +583,16 @@
           var sw = tagPop.querySelector('[data-tp-custom-color]');
           if (sw) sw.style.setProperty('--sw', App.ui.color.resolveColor(val));
         },
-        { title: L.color || '设置颜色', labels: L }
+        {
+          title: L.color || '',
+          cancelLabel: L.cancel || '',
+          applyLabel: L.save || '',
+          copiedLabel: L.copied || '',
+          clearLabel: L.clear || '',
+          copyTip: L.copyTip || '',
+          hint: L.pickerHint || '',
+          labels: L,
+        }
       );
     });
     // 色板点击
@@ -664,11 +673,11 @@
   function openDeleteDialog(inst, tag) {
     var L = inst.labels();
     var overlayEl = openDialog({
-      title: L.deleteConfirm || '删除标签',
-      desc: L.deleteTagMsg || '删除该标签?将从所有路由上移除。',
+      title: L.deleteConfirm || '',
+      desc: L.deleteTagMsg || '',
       body: '',
-      okLabel: L.delete || '删除',
-      cancelLabel: L.cancel || '取消',
+      okLabel: L.delete || '',
+      cancelLabel: L.cancel || '',
     });
     overlayEl.querySelector('[data-tp-dlg-ok]').classList.add('tp-btn-danger');
     overlayEl.querySelector('[data-tp-dlg-ok]').addEventListener('click', function () {
@@ -695,7 +704,16 @@
     else if (act === 'color') {
       App.ui.colorPicker.pickerDialog(tag.color || '', function (val) {
         if (typeof inst.opts.onColorChange === 'function') inst.opts.onColorChange(tag.id, val || '');
-      }, { title: inst.labels().color || '设置颜色', labels: inst.labels() });
+      }, {
+          title: inst.labels().color || '',
+          cancelLabel: inst.labels().cancel || '',
+          applyLabel: inst.labels().save || '',
+          copiedLabel: inst.labels().copied || '',
+          clearLabel: inst.labels().clear || '',
+          copyTip: inst.labels().copyTip || '',
+          hint: inst.labels().pickerHint || '',
+          labels: inst.labels(),
+        });
     } else if (act === 'del') openDeleteDialog(inst, tag);
   }
 

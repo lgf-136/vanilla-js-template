@@ -293,6 +293,7 @@
   /** 生成拾色器 HTML(放入 [data-dropdown-menu] 或弹窗 body 均可) */
   function pickerHtml(current, opts) {
     opts = opts || {};
+    var L = opts.labels || opts; // 文案统一经 labels 传入（红线 17），组件内不设默认文案
     CPK_SEQ++;
     var id = 'cpk-' + CPK_SEQ;
     var rgb = parseColor(current || '');
@@ -325,7 +326,9 @@
       '<input type="text" class="cpk-input" data-cpk-input value="' +
       escAttr(formatHex(rgb)) +
       '" spellcheck="false" />' +
-      '<button type="button" class="cpk-icobtn" data-cpk-copy data-tip="复制 (C)">' +
+      '<button type="button" class="cpk-icobtn" data-cpk-copy data-tip="' +
+      escAttr(L.copyTip || '') +
+      '">' +
       iconSvg('copy') +
       '</button>' +
       '</div>' +
@@ -348,16 +351,18 @@
       '<span class="cpk-value" data-cpk-value>' +
       escAttr(formatHex(rgb)) +
       '</span>' +
-      '<span class="cpk-hint">C 复制 · Shift 切换格式</span>' +
+      '<span class="cpk-hint">' +
+      escAttr(L.hint || '') +
+      '</span>' +
       '</div>' +
       (opts.showClear === false
         ? ''
         : '<div class="cpk-foot">' +
           '<button type="button" class="cpk-btn cpk-btn-ghost" data-cpk-clear>' +
-          escAttr(opts.clearLabel || '清除') +
+          escAttr(L.clearLabel || '') +
           '</button>' +
           '<button type="button" class="cpk-btn cpk-btn-primary" data-cpk-apply>' +
-          escAttr(opts.applyLabel || '应用') +
+          escAttr(L.applyLabel || '') +
           '</button>' +
           '</div>')
     );
@@ -443,6 +448,7 @@
     var scope = pickerEl(t);
     if (!scope) return;
     var opts = scope._cpkOpts || {};
+    var L = opts.labels || opts;
 
     var swatch = t.closest('[data-cpk-swatch]');
     if (swatch) {
@@ -481,7 +487,7 @@
       if (curRgb) {
         copyText(format(curRgb, mode));
         try {
-          App.ui.toast((opts.copiedLabel || '已复制') + ': ' + format(curRgb, mode));
+          App.ui.toast((L.copiedLabel || '') + ': ' + format(curRgb, mode));
         } catch (e2) {
           /* 无 toast 静默 */
         }
@@ -508,6 +514,7 @@
     var scope = pickerEl(t);
     if (!scope) return;
     var opts = scope._cpkOpts || {};
+    var L = opts.labels || opts;
     if (e.key === 'Enter' && t.hasAttribute && t.hasAttribute('data-cpk-input')) {
       var val = t.value;
       var rgb = parseColor(val);
@@ -524,7 +531,7 @@
       if (curRgb) {
         copyText(format(curRgb, scope._cpkMode || 'hex'));
         try {
-          App.ui.toast(opts.copiedLabel || '已复制');
+          App.ui.toast(L.copiedLabel || '');
         } catch (e2) {
           /* 静默 */
         }
@@ -549,6 +556,7 @@
     var scope = pickerEl(t);
     if (!scope) return;
     var opts = scope._cpkOpts || {};
+    var L = opts.labels || opts;
     if (t.closest('[data-cpk-sv]') || t.closest('[data-cpk-hue]')) {
       e.preventDefault();
       var cur = scope.querySelector('[data-cpk-input]').value;
@@ -565,6 +573,7 @@
     var scope = pickerEl(t);
     if (!scope) return;
     var opts = scope._cpkOpts || {};
+    var L = opts.labels || opts;
     var rgb = parseColor(t.value);
     var dot = scope.querySelector('[data-cpk-dot]');
     var valueEl = scope.querySelector('[data-cpk-value]');
@@ -585,16 +594,17 @@
   /** 打开拾色器弹窗(组件通用;value 可为调色板名或 hex) */
   function pickerDialog(value, opts) {
     opts = opts || {};
+    var L = opts.labels || opts; // 文案统一经 labels 传入（红线 17）
     var overlay = document.createElement('div');
     overlay.className = 'cpk-overlay';
     overlay.innerHTML =
       '<div class="cpk-dialog">' +
       '<div class="cpk-dialog-head">' +
       '<span class="cpk-dialog-title">' +
-      escAttr(opts.title || '颜色') +
+      escAttr(L.title || '') +
       '</span>' +
       '<button type="button" class="cpk-icobtn" data-cpk-dlg-close aria-label="' +
-      escAttr(opts.cancelLabel || '关闭') +
+      escAttr(L.cancelLabel || '') +
       '">' +
       iconSvg('x') +
       '</button>' +
