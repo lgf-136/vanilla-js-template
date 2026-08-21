@@ -46,28 +46,36 @@ AUTH_PASSWORD=admin123 npm run dev
 ## 目录结构
 
 ```text
-app/
-  core/                  引导、鉴权、路由内核与交互；app//settings//i18n/ 为目录模块
-                         （index.js 装配 + 业务域文件，见 ARCHITECTURE.md 2.3.3）
-  components/
-    layout/              Shell 布局渲染（shell/：sidebar/header/sheet + index 装配）
-    ui/                  公共组件，一组件一文件夹（<comp>/index.js 入口；
-                         超限组件按职责拆分，kit 核心在 core/ 按控件族分文件）
-  modules/               dashboard/tasks/apps/chats/docs/apihub/settings
-                         （apihub/settings 内部按业务域/设置项拆分多文件）
-  styles/                模板设计系统、token、关键样式与工具类
-  fonts/                 模板本地字体资源目录
-  lib/                   单文件前端库
-server/
-  app.js                 API 运行时汇总入口
-  core/                  API、鉴权、安全、HTTP 与日志
-  db/                    schema、作用域与 SQLite/Turso/D1 适配器
-  modules/               auth、settings、apihub 路由与服务
-                         （薄路由 + service；apihub 纯逻辑拆分 hub-shared/hub-config）
-  adapters/              Node、Vercel、Cloudflare、Deno 入口
-shared/                   前后端共享常量、校验与 HTML 转义 helper（escape.js 运行时）
-scripts/                  开发、构建、lint、测试、提交信息校验与预算检查
-public/                   公开静态资源
+.
+├── index.html                 # PREPAINT + critical.css + bootstrap.js
+├── app/
+│   ├── core/                  # bootstrap、app/、settings/、i18n/（目录模块）、auth、api、interactions
+│   ├── components/
+│   │   ├── layout/            # 布局入口；shell/ 目录（sidebar/header/sheet/index 装配）
+│   │   └── ui/                # UI class 生成器、图标、头像、工作空间等公共能力
+│   ├── styles/                # 模板 tokens、语义 token、关键样式、工具类
+│   ├── fonts/                 # 模板本地字体资源目录
+│   ├── lib/                   # 单文件前端库（如 Chart.js）
+│   └── modules/
+│       ├── registry.js        # 模块唯一登记点
+│       ├── dashboard/
+│       ├── tasks/
+│       ├── apps/
+│       ├── chats/
+│       ├── docs/              # 含 sub/ 下四个文档子路由
+│       ├── apihub/
+│       └── settings/          # 含五个设置子路由
+├── server/
+│   ├── app.js                 # Web Request → Node 风格 API handler
+│   ├── core/                  # API、鉴权、安全、HTTP、日志、环境
+│   ├── db/                    # schema、scope、resolver/migrate、适配器工厂与 adapters/
+│   ├── modules/               # auth、settings、apihub 路由与服务
+│   ├── adapters/              # Node、Vercel、Cloudflare、Deno 入口
+│   └── package.json           # 仅声明 server/ 内部使用 CommonJS
+├── api/server.js              # Vercel 函数转接入口
+├── shared/                    # 前后端共享常量、校验与 HTML 转义 helper（escape.js 运行时经 /shared/ 提供）
+├── scripts/                   # dev、build、lint、test、预算与数据库脚本
+└── public/                    # 公开静态资源
 ```
 
 仓库中不保留迁移包装目录：模板前端不放在 `app/template/`，模板后端不放在 `server/template/`。
