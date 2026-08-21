@@ -50,6 +50,9 @@
 4. **禁止跨模块直接 import**。`app/modules/<A>` 不得 import `app/modules/<B>` 内部任何文件。确需复用，先把代码"上移"到 `app/components/ui`（组件/渲染函数）或 `shared/`（纯函数/常量），再各自引用（`just lint` 自动扫描违规）。
 5. **页面级滚动只由壳层承担**：`html`/`body`/`#app` 不滚动，唯一的页面级滚动视口是壳层 `[data-slot="scroll-area-viewport"]`（`overflow-y: auto`）。业务模块如需工作台式多栏布局（如 apihub、settings），可在模块内部使用独立 `overflow-y: auto` 容器，但不得引入第二个页面级滚动视口。
 6. **新增业务模块禁止修改壳层文件**（`app/components/layout/*`、`app/core/app/`、`app/core/bootstrap.js`）。唯一允许改动的登记点是 `app/modules/registry.js` 新增一行。
+   核心层已目录化（`app/core/app|settings|i18n/`，入口为各自 index.js）：改动遵循
+   `ARCHITECTURE.md` 2.3.3——可变状态收敛 state 锚点（live binding + setter）、
+   域归属以实际代码为准、App.* 挂载面 diff 为空是验收标准；
 7. **SQL 一律参数化，禁止字符串拼接拼 SQL**（参数统一经适配器绑定，见 `ARCHITECTURE.md` 4.3）。
 8. **敏感字段禁止明文入库**（清单见 `ARCHITECTURE.md` 4.6 节：用户信息、API Key、Token、需要落库的数据库凭证等）。新增涉及敏感字段的表/接口前，先确认加密/哈希方案，不确定就询问而不是自行明文实现。
 9. **禁止引入 ORM 或查询构建器依赖**，保持 SQL-first。
