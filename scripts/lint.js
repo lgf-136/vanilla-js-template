@@ -33,10 +33,8 @@ const LEGACY_OVERSIZED = new Set([
   'app/components/ui/group-tree.js',
   'app/components/ui/tag-picker.js',
   'app/components/ui/ui.js',
-  'app/modules/apihub/index.js',
   'app/modules/chats/index.js',
   'app/modules/dashboard/index.js',
-  'app/modules/settings/index.js',
   'app/modules/tasks/index.js',
 ]);
 
