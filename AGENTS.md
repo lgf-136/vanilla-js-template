@@ -107,7 +107,7 @@
 > 公共组件一律「一组件一文件夹」，文件夹内 `index.js` 为入口（bootstrap 经动态 import() 按序加载，
 > 说明符须带 `./` 或经 baseURL 归一化）。实现预计超过 300 行（警戒区）时按形态拆分：
 > - **工具型**：纯逻辑伴生文件（如 color-picker/color.js 色彩数学）+ index.js UI 层；
-> - **容器型**：model(状态+单例注册表) / render / dialog / menu·popover / events / index；
+> - **容器型**：model(状态+单例注册表) / render / dialog / menu·popover / events / index（实例：data-table、group-tree、tag-picker、layout/shell）；
 > - **kit 核心**：一控件族一文件（ui/core/：utils/form/dropdown/radio/feedback/context-menu/misc）。
 > 铁律：① `App.ui.*` 挂载面逐字稳定，拆分前后做挂载键 diff 与行为轨迹对照，消费方零改动；
 > ② 单例注册表放最底层文件防循环；③ 副作用文件（仅注册监听器）必须被入口显式导入并按原顺序排列；

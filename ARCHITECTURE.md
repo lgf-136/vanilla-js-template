@@ -18,7 +18,7 @@
 ├── app/
 │   ├── core/                  # bootstrap、app/、settings/、i18n/（目录模块）、auth、api、interactions
 │   ├── components/
-│   │   ├── layout/            # Shell 的布局入口与 shell 渲染器
+│   │   ├── layout/            # 布局入口；shell/ 目录（sidebar/header/sheet/index 装配）
 │   │   └── ui/                # UI class 生成器、图标、头像、工作空间等公共能力
 │   ├── styles/                # 模板 tokens、语义 token、关键样式、工具类
 │   ├── fonts/                 # 模板本地字体资源目录
@@ -73,7 +73,7 @@ critical.css
 
 ### 2.2 Shell 与滚动契约
 
-`app/components/layout/shell.js` 是模板 Shell 的唯一渲染器，负责侧边栏、顶栏、设置 Sheet、工作空间菜单和用户菜单；业务模块只向 `[data-content-area]` 返回页面 HTML，不直接改 Shell。
+`app/components/layout/shell/` 是模板 Shell 的唯一渲染器（`index.js` 装配挂载 `App.shell` 五方法；`sidebar.js` 侧边栏与多级导航、`header.js` 顶栏、`sheet.js` 设置 Sheet 含原位重绘），负责侧边栏、顶栏、设置 Sheet、工作空间菜单和用户菜单；业务模块只向 `[data-content-area]` 返回页面 HTML，不直接改 Shell。
 
 - 桌面端使用固定侧边栏 + 顶栏 + 主内容区；
 - 移动端由 `app/core/interactions.js` 创建抽屉侧边栏；
@@ -151,7 +151,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 | 形态 | 实例 | 拆法 |
 |---|---|---|
 | 工具型（纯逻辑 + UI 薄壳） | color-picker | `color.js` 纯色彩数学 + `index.js` UI 层与命名空间挂载 |
-| 容器型（状态 + 视图 + 弹窗/菜单/事件） | data-table / group-tree / tag-picker | `model.js`(状态+单例注册表+纯逻辑) / `render.js` / `dialog.js` / `menu.js` 或 `popover.js` / `events.js` / `index.js` 装配 |
+| 容器型（状态 + 视图 + 弹窗/菜单/事件） | data-table / group-tree / tag-picker / shell(壳层) | `model.js`(状态+单例注册表+纯逻辑) / `render.js` 或按区块拆 render / `dialog.js` / `menu.js` 或 `popover.js` / `events.js` / `index.js` 装配（shell 为 sidebar/header/sheet + index） |
 | kit 核心（控件族集合） | ui.js → `core/` | 一控件族一文件：utils / form / dropdown / radio / feedback(toast+dialog+Esc) / context-menu / misc + `index.js` 装配 |
 
 硬性约束：
