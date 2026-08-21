@@ -3,7 +3,7 @@
  * 前后端共享常量（跨模块复用先"毕业"到这里，禁止模块之间互相 import）。
  */
 
-/** 支持的语言（与 app/core/i18n.js、各模块 i18n.js 三语言对象一一对应） */
+/** 支持的语言（与 app/core/i18n/（dicts.js）、各模块 i18n.js 三语言对象一一对应） */
 export const LANGUAGE_CODES = ['zh-CN', 'zh-TW', 'en'];
 
 /**

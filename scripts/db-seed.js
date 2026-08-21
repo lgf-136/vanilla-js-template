@@ -13,7 +13,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { encrypt } = require('../server/core/security/index.js');
 
-const WORKSPACE = 'ws-default'; // 与 app/core/settings.js 的默认工作空间一致
+const WORKSPACE = 'ws-default'; // 与 app/core/settings/（index.js 装配） 的默认工作空间一致
 const NOW = new Date().toISOString();
 
 /** 演示资料（settings:profile 属敏感键，整值经 AES-GCM 加密后落库） */

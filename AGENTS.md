@@ -49,7 +49,7 @@
 3. **禁止硬编码颜色/圆角/间距字面量**。颜色与圆角一律通过 `app/styles/tokens.css` 定义的 CSS 变量消费，新增视觉样式前先检查 token 是否已存在，缺失则先在 `tokens.css` 补充（hex 字面量由 `just lint` 强制检查；rgb/hsl/oklch/命名色靠评审把关）；间距优先使用 `--spacing` 刻度（`calc(var(--spacing) * N)`），新增代码不得写死 rem/px 间距。
 4. **禁止跨模块直接 import**。`app/modules/<A>` 不得 import `app/modules/<B>` 内部任何文件。确需复用，先把代码"上移"到 `app/components/ui`（组件/渲染函数）或 `shared/`（纯函数/常量），再各自引用（`just lint` 自动扫描违规）。
 5. **页面级滚动只由壳层承担**：`html`/`body`/`#app` 不滚动，唯一的页面级滚动视口是壳层 `[data-slot="scroll-area-viewport"]`（`overflow-y: auto`）。业务模块如需工作台式多栏布局（如 apihub、settings），可在模块内部使用独立 `overflow-y: auto` 容器，但不得引入第二个页面级滚动视口。
-6. **新增业务模块禁止修改壳层文件**（`app/components/layout/*`、`app/core/app.js`、`app/core/bootstrap.js`）。唯一允许改动的登记点是 `app/modules/registry.js` 新增一行。
+6. **新增业务模块禁止修改壳层文件**（`app/components/layout/*`、`app/core/app/`、`app/core/bootstrap.js`）。唯一允许改动的登记点是 `app/modules/registry.js` 新增一行。
 7. **SQL 一律参数化，禁止字符串拼接拼 SQL**（参数统一经适配器绑定，见 `ARCHITECTURE.md` 4.3）。
 8. **敏感字段禁止明文入库**（清单见 `ARCHITECTURE.md` 4.6 节：用户信息、API Key、Token、需要落库的数据库凭证等）。新增涉及敏感字段的表/接口前，先确认加密/哈希方案，不确定就询问而不是自行明文实现。
 9. **禁止引入 ORM 或查询构建器依赖**，保持 SQL-first。
@@ -129,7 +129,7 @@
 1. 在对应模块 `i18n.js` 的 `window.__moduleI18n['<id>']` 中新增 key（命名空间 `<module>.<scope>.<name>`）；
 2. 同步补齐 `en` / `zh-CN` / `zh-TW` 三个语言对象的同一 key；
 3. 跑 `just i18n-check`，确认三语言 key 集合完全一致，缺一个都视为失败（脚本已覆盖模块 `i18n.js`）；
-4. 壳层通用文案（按钮、通用提示等）改 `app/core/i18n.js`，命名空间 `sidebar.*` / `settings.*` 等。
+4. 壳层通用文案（按钮、通用提示等）改 `app/core/i18n/index.js`（词典数据在同目录 `dicts.js`），命名空间 `sidebar.*` / `settings.*` 等。
 
 ## 8. 性能与体积自检
 

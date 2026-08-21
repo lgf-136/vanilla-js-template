@@ -1,18 +1,13 @@
 /* ============================================================
- * i18n.js — 核心国际化运行时(零依赖)
+ * dicts.js — 核心国际化词典数据（自 app/core/i18n.js 拆出，红线 12）
  * ------------------------------------------------------------
- * - 核心词典只包含 App Shell / 设置面板 / 公共 UI 文案
- * - 各模块自有文案放在各自懒加载的 i18n.js(manifest 声明 i18nFile,模块内聚)
- * - t(key, arg) 支持 {n} 插值;查找顺序:模块词典 → 核心词典 → key
+ * - 纯数据文件：仅导出三语言扁平键值词典 dict，无逻辑、无副作用
+ * - 命名空间：sidebar.* / dataTable.* / workspace.* / profiles.* /
+ *   avatar.* / auth.* / header.* / settings.* 等壳层与公共 UI 文案
+ * - key 集合与译文三语言（en / zh-CN / zh-TW）严格对齐，零增删改
+ * - 消费方：同目录 index.js（makeT/locale 运行时经 App.i18n 对外提供）
  * ============================================================ */
-(function () {
-  'use strict';
-
-  var LOCALES = ['zh-CN', 'zh-TW', 'en'];
-  var DEFAULT_LOCALE = 'zh-CN';
-  var LOCALE_KEY = 'html-template-locale';
-
-  var dict = {
+export var dict = {
     en: {
       'sidebar.main': 'Main',
       'sidebar.workspaces': 'Workspaces',
@@ -461,42 +456,3 @@
       'settings.menuAppearanceOptions.translucent': '半透明',
     },
   };
-
-  /** 翻译:t(key, arg) 支持 {n} 插值;extra 为模块词典(按语言分组的扁平键值) */
-  function translate(locale, key, arg, extra) {
-    var d = dict[locale] || dict[DEFAULT_LOCALE];
-    var de = dict[DEFAULT_LOCALE];
-    var text = null;
-    if (extra) {
-      text =
-        (extra[locale] && extra[locale][key]) ||
-        (extra[DEFAULT_LOCALE] && extra[DEFAULT_LOCALE][key]) ||
-        null;
-    }
-    if (text == null) text = d[key] || de[key] || key;
-    return arg !== undefined ? String(text).replace('{n}', String(arg)) : text;
-  }
-
-  /** 从 locale 映射(如 manifest.title)中取值,带默认语言兜底 */
-  function pick(map, locale) {
-    if (!map) return '';
-    return map[locale] || map[DEFAULT_LOCALE] || map.en || '';
-  }
-
-  /** 生成翻译函数;moduleDict 为可选模块词典(按语言分组) */
-  function makeT(locale, moduleDict) {
-    return function (key, arg) {
-      return translate(locale, key, arg, moduleDict);
-    };
-  }
-
-  window.App = window.App || {};
-  App.i18n = {
-    LOCALES: LOCALES,
-    DEFAULT_LOCALE: DEFAULT_LOCALE,
-    LOCALE_KEY: LOCALE_KEY,
-    translate: translate,
-    pick: pick,
-    makeT: makeT,
-  };
-})();

@@ -168,11 +168,11 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 
 应用使用 Hash 路由，支持 `/`、`/tasks`、`/apps`、`/chats`、`/docs/*`、`/apihub`、`/settings/*`；未知路径由 `App.ui.notFound()` 渲染 404。所有内容事件通过 `document` 委托绑定，重渲染后无需重复注册。
 
-核心词典位于 `app/core/i18n.js`；模块词典由 `i18nFile` 在首次访问时写入 `window.__moduleI18n[id]`。支持 `zh-CN`、`zh-TW`、`en`，运行 `npm run i18n:check` 强制校验 key 集合一致。
+核心词典位于 `app/core/i18n/`（`dicts.js` 纯数据 + `index.js` 运行时）；模块词典由 `i18nFile` 在首次访问时写入 `window.__moduleI18n[id]`。支持 `zh-CN`、`zh-TW`、`en`，运行 `npm run i18n:check` 强制校验 key 集合一致。
 
-设置状态由 `app/core/settings.js` 管理并保存到 `html-template-*` 本地键；登录后与服务端 `app_settings` 双向同步。工作空间注册表和当前指针属于 `global` 作用域，其余设置按活跃工作空间隔离。
+设置状态由 `app/core/settings/`（`index.js` 装配，storage/appearance/workspaces/profiles/state 分域）管理并保存到 `html-template-*` 本地键；登录后与服务端 `app_settings` 双向同步。工作空间注册表和当前指针属于 `global` 作用域，其余设置按活跃工作空间隔离。
 
-设置页（`/settings/*`）内保存修改后经 `updateSettings()` → `App.rerenderContent()` 重渲染当前视图，以保证与服务端状态一致；由于设置页是左右两栏独立滚动的工作台布局（见 3.5），`app/core/app.js` 的 `rerenderContent()` 会在重渲染前保存 `.sp-content` 的 `scrollTop` 并在重建后恢复，避免切换开关/单选时右栏跳回顶部；左栏导航与右栏内容互不干扰。
+设置页（`/settings/*`）内保存修改后经 `updateSettings()` → `App.rerenderContent()` 重渲染当前视图，以保证与服务端状态一致；由于设置页是左右两栏独立滚动的工作台布局（见 3.5），`app/core/app/render.js` 的 `rerenderContent()` 会在重渲染前保存 `.sp-content` 的 `scrollTop` 并在重建后恢复，避免切换开关/单选时右栏跳回顶部；左栏导航与右栏内容互不干扰。
 
 ## 3. 样式系统
 

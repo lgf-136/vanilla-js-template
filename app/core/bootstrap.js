@@ -6,12 +6,12 @@
   var AUTH_CORE = [
     'shared/escape.js', // HTML 转义唯一实现（红线 13），必须最先就位
     'app/core/logger.js',
-    'app/core/i18n.js',
+    'app/core/i18n/index.js',
     'app/components/ui/icons/data.js',
     'app/components/ui/icons/index.js',
     'app/core/api.js',
     'app/core/auth.js',
-    'app/core/settings.js',
+    'app/core/settings/index.js',
     'app/components/ui/index.js',
   ];
 
@@ -25,7 +25,7 @@
     'app/components/ui/data-table/index.js',
     'app/components/ui/avatar/index.js',
     'app/components/layout/shell.js',
-    'app/core/app.js',
+    'app/core/app/index.js',
     'app/components/ui/workspace/index.js',
     'app/components/ui/profile/index.js',
     'app/core/interactions.js',
