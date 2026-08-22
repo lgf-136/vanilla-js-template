@@ -114,15 +114,17 @@ function createHub(deps) {
       if (historyRow) {
         const list = parseJson(historyRow.value, []);
         if (Array.isArray(list)) {
+          const statements = [];
           for (const e of list) {
             const n = normalizeHistoryEntry(e);
             if (n) {
-              await db.run(
-                'INSERT INTO apihub_history (workspace_id, method, path, status, ts) VALUES (?, ?, ?, ?, ?)',
-                [ws, n.method, n.path, n.status, n.ts]
-              );
+              statements.push({
+                sql: 'INSERT INTO apihub_history (workspace_id, method, path, status, ts) VALUES (?, ?, ?, ?, ?)',
+                params: [ws, n.method, n.path, n.status, n.ts],
+              });
             }
           }
+          if (statements.length) await db.batch(statements);
         }
       }
       const logsRow = await db.get(
@@ -132,15 +134,17 @@ function createHub(deps) {
       if (logsRow) {
         const list = parseJson(logsRow.value, []);
         if (Array.isArray(list)) {
+          const statements = [];
           for (const e of list) {
             const n = normalizeLogEntry(e);
             if (n) {
-              await db.run(
-                'INSERT INTO apihub_logs (workspace_id, method, path, status, ts, ip, ua, ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                [ws, n.method, n.path, n.status, n.ts, n.ip, n.ua, n.ms]
-              );
+              statements.push({
+                sql: 'INSERT INTO apihub_logs (workspace_id, method, path, status, ts, ip, ua, ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                params: [ws, n.method, n.path, n.status, n.ts, n.ip, n.ua, n.ms],
+              });
             }
           }
+          if (statements.length) await db.batch(statements);
         }
       }
       for (const k of LEGACY_HUB_KEYS) {
@@ -198,13 +202,17 @@ function createHub(deps) {
         return true;
       })
       .slice(0, HISTORY_CAP);
-    await db.run('DELETE FROM apihub_history WHERE workspace_id = ?', [ws]);
+    // 单次批量:DELETE + N 条 INSERT(远程 DB 1 次往返;sqlite 事务原子)
+    const statements = [
+      { sql: 'DELETE FROM apihub_history WHERE workspace_id = ?', params: [ws] },
+    ];
     for (const e of list) {
-      await db.run(
-        'INSERT INTO apihub_history (workspace_id, method, path, status, ts) VALUES (?, ?, ?, ?, ?)',
-        [ws, e.method, e.path, e.status, e.ts]
-      );
+      statements.push({
+        sql: 'INSERT INTO apihub_history (workspace_id, method, path, status, ts) VALUES (?, ?, ?, ?, ?)',
+        params: [ws, e.method, e.path, e.status, e.ts],
+      });
     }
+    await db.batch(statements);
     return list;
   }
 

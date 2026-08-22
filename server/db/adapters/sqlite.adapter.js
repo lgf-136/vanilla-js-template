@@ -67,6 +67,22 @@ function init(opts) {
       return { changes: Number(r.changes), lastInsertRowid: Number(r.lastInsertRowid) };
     },
 
+    /** 批量写(事务包裹,全部成功才提交;失败整体回滚) */
+    batch(statements) {
+      if (!Array.isArray(statements) || !statements.length) return { changes: 0 };
+      db.exec('BEGIN');
+      try {
+        for (const s of statements) {
+          db.prepare(s.sql).run(...normalizeParams(s.params));
+        }
+        db.exec('COMMIT');
+      } catch (e) {
+        db.exec('ROLLBACK');
+        throw e;
+      }
+      return { changes: statements.length };
+    },
+
     /** 建表(与 turso / d1 驱动同接口;CREATE TABLE IF NOT EXISTS 幂等) */
     initSchema(schema) {
       applySchema(schema);

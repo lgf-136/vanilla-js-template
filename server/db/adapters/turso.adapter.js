@@ -116,6 +116,17 @@ function init(opts) {
       };
     },
 
+    /** 批量写:单次 HTTP pipeline 传多条 stmt(远程往返 1 次) */
+    async batch(statements) {
+      if (!Array.isArray(statements) || !statements.length) return { changes: 0 };
+      await pipeline(
+        statements.map(function (s) {
+          return { type: 'execute', stmt: { sql: s.sql, args: bindArgs(s.params) } };
+        })
+      );
+      return { changes: statements.length };
+    },
+
     /** 建表(远程驱动初始化时执行;随后补齐工作空间迁移) */
     async initSchema(schema) {
       const statements = schema

@@ -33,11 +33,24 @@ function createLogWriter(deps) {
     try {
       await ensureMigrated();
       const ws = getCachedWs() || (await resolveWorkspace());
-      for (const item of batch) {
-        await db.run(
-          'INSERT INTO apihub_logs (workspace_id, method, path, status, ts, ip, ua, ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [ws, item.clean.method, item.clean.path, item.clean.status, item.clean.ts, item.clean.ip, item.clean.ua, item.clean.ms]
-        );
+      const statements = batch.map(function (item) {
+        return {
+          sql: 'INSERT INTO apihub_logs (workspace_id, method, path, status, ts, ip, ua, ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          params: [
+            ws,
+            item.clean.method,
+            item.clean.path,
+            item.clean.status,
+            item.clean.ts,
+            item.clean.ip,
+            item.clean.ua,
+            item.clean.ms,
+          ],
+        };
+      });
+      if (typeof db.batch === 'function') await db.batch(statements);
+      else {
+        for (const s of statements) await db.run(s.sql, s.params);
       }
       logWritesSinceCleanup += batch.length;
       if (logWritesSinceCleanup >= LOG_CLEANUP_EVERY) {

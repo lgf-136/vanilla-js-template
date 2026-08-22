@@ -60,19 +60,21 @@ function authRoutes({ db, verifyPassword }) {
     const token = crypto.randomBytes(24).toString('base64url');
     const expiresAt = new Date(Date.now() + ttl).toISOString();
     // 数据库仅存 SHA-256 哈希,明文令牌只在响应中返回给客户端
-    await db.run('INSERT INTO auth_sessions (token_hash, expires_at, note) VALUES (?, ?, ?)', [
-      sha256(token),
-      expiresAt,
-      expiry,
+    // 三条写合并为单次批量(远程 DB 1 次往返;sqlite 事务原子)
+    await db.batch([
+      {
+        sql: 'INSERT INTO auth_sessions (token_hash, expires_at, note) VALUES (?, ?, ?)',
+        params: [sha256(token), expiresAt, expiry],
+      },
+      {
+        sql: 'DELETE FROM auth_sessions WHERE expires_at IS NOT NULL AND expires_at <= ?',
+        params: [new Date().toISOString()],
+      },
+      {
+        sql: 'DELETE FROM auth_sessions WHERE token_hash NOT IN (SELECT token_hash FROM auth_sessions ORDER BY created_at DESC LIMIT ?)',
+        params: [MAX_SESSIONS],
+      },
     ]);
-    // 会话表有界:顺带清理已过期会话 + 超出上限删除最旧会话
-    await db.run('DELETE FROM auth_sessions WHERE expires_at IS NOT NULL AND expires_at <= ?', [
-      new Date().toISOString(),
-    ]);
-    await db.run(
-      'DELETE FROM auth_sessions WHERE token_hash NOT IN (SELECT token_hash FROM auth_sessions ORDER BY created_at DESC LIMIT ?)',
-      [MAX_SESSIONS]
-    );
     return sendJson(res, 200, { token, expiresAt, expiry });
   }
 

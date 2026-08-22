@@ -12,6 +12,9 @@ function fakeDb() {
     async run(sql, params) {
       calls.push({ type: 'run', sql, params });
     },
+    async batch(statements) {
+      calls.push({ type: 'batch', statements });
+    },
     async get() {
       return null;
     },
@@ -68,13 +71,13 @@ test('登录成功:返回令牌,按序执行 插入 → 过期清理 → 上限�
   assert.equal(res.statusCode, 200);
   assert.ok(res.body.token && typeof res.body.token === 'string');
   assert.equal(res.body.expiry, '24h');
-  // 三条 SQL 顺序正确:INSERT → 过期清理 → 上限裁剪
-  const sqls = db.calls.map((c) => c.sql);
-  assert.equal(sqls.length, 3);
-  assert.ok(sqls[0].includes('INSERT INTO auth_sessions'));
-  assert.ok(sqls[1].includes('DELETE FROM auth_sessions WHERE expires_at IS NOT NULL'));
-  assert.ok(sqls[2].includes('ORDER BY created_at DESC LIMIT'));
-  assert.equal(sqls[2].includes('?'), true);
+  // 三条 SQL 合并为单次批量:INSERT → 过期清理 → 上限裁剪
+  assert.equal(db.calls.length, 1);
+  const stmts = db.calls[0].statements;
+  assert.equal(stmts.length, 3);
+  assert.ok(stmts[0].sql.includes('INSERT INTO auth_sessions'));
+  assert.ok(stmts[1].sql.includes('DELETE FROM auth_sessions WHERE expires_at IS NOT NULL'));
+  assert.ok(stmts[2].sql.includes('ORDER BY created_at DESC LIMIT'));
 });
 
 test('登录失败:401 且不执行任何会话 SQL', async () => {

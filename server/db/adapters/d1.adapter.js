@@ -71,6 +71,17 @@ function initBinding(opts) {
       };
     },
 
+    /** 批量写:原生 binding.batch(单次往返原子执行) */
+    async batch(statements) {
+      if (!Array.isArray(statements) || !statements.length) return { changes: 0 };
+      await binding.batch(
+        statements.map(function (s) {
+          return binding.prepare(s.sql).bind(...normalizeParams(s.params));
+        })
+      );
+      return { changes: statements.length };
+    },
+
     /** 建表(逐条执行;CREATE TABLE IF NOT EXISTS 幂等,可反复调用) */
     async initSchema(schema) {
       const statements = schema
@@ -145,6 +156,13 @@ function initRest(opts) {
         changes: Number(meta.changes || 0),
         lastInsertRowid: Number(meta.last_row_id || 0),
       };
+    },
+
+    /** 批量写:REST 不支持多语句参数绑定,顺序逐条执行(语义一致,少一次抽象层) */
+    async batch(statements) {
+      if (!Array.isArray(statements) || !statements.length) return { changes: 0 };
+      for (const s of statements) await this.run(s.sql, s.params);
+      return { changes: statements.length };
     },
 
     /** 建表(REST API 的 sql 支持分号分隔的多条语句,按批次执行) */

@@ -77,16 +77,19 @@ function createSettingsService({ db, encrypt, decrypt }) {
     // 切工作空间时,负载自带新的 settings:activeWorkspace,按新值归属工作空间键
     const activeWs = await resolveActiveWorkspace(declaredWs);
     const now = new Date().toISOString();
+    // 单次批量写入(远程 DB 1 次往返;sqlite 事务原子)——避免 N 个 key N 次往返
+    const statements = [];
     for (const k of keys) {
       const wsId = workspaceIdForKey(k, activeWs);
       let v = typeof entries[k] === 'string' ? entries[k] : JSON.stringify(entries[k]);
       // 敏感键:落库前加密,数据库不以明文存放
       if (isSensitiveKey(k)) v = encrypt(v);
-      await db.run(
-        'INSERT INTO app_settings (workspace_id, key, value, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(workspace_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
-        [wsId, k, v, now]
-      );
+      statements.push({
+        sql: 'INSERT INTO app_settings (workspace_id, key, value, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(workspace_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
+        params: [wsId, k, v, now],
+      });
     }
+    await db.batch(statements);
     return { written: keys.length };
   }
 

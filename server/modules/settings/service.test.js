@@ -55,6 +55,10 @@ function makeDb() {
       }
       return { changes: 0 };
     },
+    async batch(statements) {
+      for (const s of statements) await this.run(s.sql, s.params);
+      return { changes: statements.length };
+    },
   };
 }
 
