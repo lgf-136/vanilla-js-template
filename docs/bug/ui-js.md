@@ -171,3 +171,50 @@ ui.js 拆分时 `closeDropdowns` 未被保留在 App.ui 挂载面，tag-picker
    防止旧挂载键的残留调用长期潜伏。
 2. 防御式调用（`X ? X() : null`）会掩盖悬空引用，删除旧 API 时
    应全局搜索调用点，而不是依赖运行时静默。
+
+---
+
+## BUG-006: build.js 压缩 HTML 折叠内联脚本空白,导致 CSP sha256 哈希漂移
+
+- 类型：ui-js
+- 严重度：高（生产构建后首帧内联脚本被 CSP 拦截,主题/语言首帧应用失效）
+- 发现时间：2026-08-22
+- 修复提交：`2d5181d`（fix(security): CSP 收紧——内联脚本改用 sha256 哈希固定,移除 script-src unsafe-inline）
+- 涉及文件：`scripts/build.js`、`index.html`
+- 涉及组件：PREPAINT 首帧内联脚本
+
+### 现象
+
+给 CSP 的 `script-src` 加上 PREPAINT 内联脚本的 `sha256-` 哈希后,本地预览正常,
+但 `node scripts/build.js` 产出的 `dist/index.html` 中,内联脚本实际哈希与 CSP
+声明不一致——生产环境内联脚本被 CSP 拦截,主题/语言首帧应用静默失效。
+
+### 根因
+
+`scripts/build.js` 压缩 HTML 时执行 `fingerprintedHtml.split(/\s+/).join(' ')`,
+把**所有**空白折叠为单空格——包括 `<script>` 块内部的换行与缩进。CSP 哈希是
+按内联脚本的逐字节内容计算的,任何空白折叠都会改变哈希,而 CSP 声明里还是
+源文件的哈希,二者漂移。
+
+### 修复过程
+
+1. `scripts/build.js` 新增 `compressHtml()`:用正则 `<script>[\s\S]*?<\/script>`
+   切出内联脚本块,**逐字节保留**其内容,只对标签间空白压缩与换行;
+2. `index.html` CSP: `script-src 'self' 'unsafe-inline'` → `'self' 'sha256-...'`
+   （style-src 因组件动态注入 `<style>` 保留 `'unsafe-inline'`;静态 nonce 可被
+   攻击者读取、无防护意义,静态文件正确做法是内容哈希）;
+3. 新增 `scripts/csp.test.js` 自一致性测试（源 index.html:内联脚本哈希 == CSP 声明）;
+4. `scripts/build.test.js` 增加 dist 产物断言:dist 内联脚本哈希必须在 dist CSP 中。
+
+### 验证
+
+`node --test`(76/76) 通过,含 csp.test.js 3 例与 build.test.js 的 dist 哈希回归断言;
+`node scripts/build.js` 后 dist/index.html 内联脚本哈希与 CSP 声明一致。
+
+### 防坑指南
+
+- **任何对 `index.html` 内联脚本的修改必须同步更新 CSP 中的 `sha256-` 值**——
+  否则生产构建后首帧脚本被拦截,本地开发(不经 build)却一切正常,极具迷惑性;
+- **压缩/转译 HTML 时禁止折叠 `<script>` 内部空白**——哈希按字节计算;
+- 给静态文件加 CSP 哈希后,务必跑一次真实 build 并在 dist 产物上验证哈希一致性
+  （源文件通过不代表产物通过）。
