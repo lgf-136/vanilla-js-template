@@ -24,14 +24,9 @@
   }
 
   /** 从 Node req / Worker Request 提取客户端 IP(兼容两种形态) */
-  function clientIp(req) {
-    const h = getHeader(req, 'x-forwarded-for');
-    if (typeof h === 'string' && h) return h.split(',')[0].trim();
-    const cf = getHeader(req, 'cf-connecting-ip');
-    if (typeof cf === 'string' && cf) return cf;
-    if (req && req.socket && req.socket.remoteAddress) return String(req.socket.remoteAddress);
-    return '';
-  }
+  // 信任链收敛在 server/core/http/client-ip.js:Node 直连 socket → cf-connecting-ip →
+  // x-forwarded-for 末位(平台追加的真实 IP)。不得直接取 x-forwarded-for 首值(客户端可控)。
+  const { clientIp } = require('../../core/http/client-ip');
 
   /** 校验自定义路由路径:必须以 / 开头、不含 .. 段、不含查询串 */
   function isValidPath(p) {

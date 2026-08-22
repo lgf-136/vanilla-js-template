@@ -37,7 +37,11 @@ function startServer(port = Number(process.env.PORT) || 3000) {
     const isApi = url.pathname === '/api' || url.pathname.startsWith('/api/');
     try {
       if (isApi) {
-        const response = await handleRequest(toWebRequest(req), process.env);
+        const webReq = toWebRequest(req);
+        // 仅直连监听注入真实 TCP 对端 IP(Vercel 复用 toWebRequest 时不注入——
+        // 其 req.socket.remoteAddress 是内网代理,不可作为客户端 IP)
+        webReq.__realRemoteAddress = req.socket && req.socket.remoteAddress;
+        const response = await handleRequest(webReq, process.env);
         await writeWebResponse(res, response);
       } else {
         serveStatic(req, res, url.pathname, ROOT);

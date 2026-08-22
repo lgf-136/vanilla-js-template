@@ -10,11 +10,14 @@ let runtimePromise = null;
 function makeNodeRequest(request) {
   const headers = Object.fromEntries(request.headers.entries());
   const listeners = { data: [], end: [], error: [] };
+  // socket.remoteAddress 仅在 Node 直连时由 node.entry.js 注入真实 TCP 对端 IP
+  // (__realRemoteAddress);serverless 形态不伪造,由 clientIp 按 cf-connecting-ip /
+  // x-forwarded-for 末位解析,防止客户端可控的 x-forwarded-for 首值绕过 IP 限流。
   const nodeRequest = {
     method: request.method,
     headers,
     url: request.url,
-    socket: { remoteAddress: headers['x-forwarded-for'] || 'request' },
+    socket: { remoteAddress: request.__realRemoteAddress },
     on(event, callback) {
       if (listeners[event]) listeners[event].push(callback);
       return nodeRequest;

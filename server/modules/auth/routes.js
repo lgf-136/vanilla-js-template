@@ -13,20 +13,10 @@ const { EXPIRY_MS } = require('../../core/auth/expiry');
 const { sha256 } = require('../../core/auth/session');
 const { createThrottle } = require('../../core/auth/throttle');
 const { sendJson, readBody } = require('../../core/http/json');
+const { clientIp } = require('../../core/http/client-ip');
 
 /* 登录暴力破解限流:只统计密码错误次数,成功登录后清空 */
 const loginThrottle = createThrottle();
-
-/**
- * 取客户端 IP:优先 socket.remoteAddress(自托管 Node/Docker 下不可伪造),
- * 回退 x-forwarded-for(serverless 适配器无 socket 时)。
- */
-function clientIp(req) {
-  if (req.socket && req.socket.remoteAddress) return req.socket.remoteAddress;
-  const fwd = req.headers && req.headers['x-forwarded-for'];
-  if (typeof fwd === 'string' && fwd) return fwd.split(',')[0].trim();
-  return 'unknown';
-}
 
 function authRoutes({ db, verifyPassword }) {
   async function login(req, res) {
@@ -41,7 +31,7 @@ function authRoutes({ db, verifyPassword }) {
     const ttl = EXPIRY_MS[expiry];
     if (!ttl) return sendJson(res, 400, { error: 'bad_expiry', message: '不支持的失效选项' });
 
-    const ip = clientIp(req);
+    const ip = clientIp(req, 'unknown');
     if (loginThrottle.isBlocked(ip)) {
       return sendJson(res, 429, {
         error: 'too_many_attempts',
