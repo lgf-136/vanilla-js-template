@@ -179,7 +179,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 1. **可变状态收敛**：跨文件共享的可变状态放最底层 state 文件，以 ESM live binding + setter 暴露（如 setSettings / resetOpenSubmenus），其他域经 setter 修改、直接读绑定取值——禁止各域自持副本；
 2. **依赖单向**：index ← events/actions/bridge ← server-sync ← render ← … ← state；新增域文件先想清楚落在哪一层；
 3. **归属以实际代码为准**：拆分前先测绘再落位（实例：服务端同步 pushSettingsToServer 实测在 app 内核而非 settings）；
-4. **App.* 挂载面逐字稳定**：index 装配负责全部挂载，diff 为空是验收标准（App 内核 17 键 / App.settings 44 键 / App.i18n 6 键）；
+4. **App.* 挂载面逐字稳定**：index 装配负责全部挂载，diff 为空是验收标准（App 内核 17 键 / App.settings 46 键 / App.i18n 6 键）；
 5. 块注释内不得出现 `xxx-*/` 形态（会提前终止注释导致语法错误）。
 
 ### 2.4 路由、设置与国际化
@@ -261,7 +261,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 
 `server/core/api.js` 汇总 `auth`、`settings` 和 `apihub` 路由，并为所有非登录接口执行会话门禁。路由文件只负责参数读取、状态码和调用 service；API Hub 的公开路由、Bearer、全局密码与 API Key 策略由 `server/modules/apihub/service.js` 统一计算（纯逻辑拆分在同目录 `hub-shared.js` 常量与请求/路径工具、`hub-config.js` 配置规范化与生效策略，service 保留依赖注入的 IO 编排）。（现有 `auth` 路由仍内联少量 SQL，属历史实现；新增路由按 routes 薄 + service 拆分约定编写。）
 
-核心管理接口中只有 `POST /api/auth/login` 公开（它是换取会话令牌的入口）；API Hub 路由可按配置设为公开 / Bearer / 全局密码 / API Key 策略（由 `server/modules/apihub/service.js` 计算，同样绕过默认会话门禁），其余管理接口默认需要 `x-auth-token`。登录密码来自 `AUTH_PASSWORD`，不会写入数据库。服务端生成随机会话令牌，数据库只写入 `auth_sessions.token_hash`、过期时间和选项；客户端按 `localStorage` 或 `sessionStorage` 保存令牌。
+核心管理接口中只有 `POST /api/auth/login` 公开（它是换取会话令牌的入口）；API Hub 路由可按配置设为公开 / Bearer / 全局密码 / API Key 策略（由 `server/modules/apihub/service.js` 计算，同样绕过默认会话门禁），其余管理接口默认需要 `x-auth-token`。登录密码来自 `AUTH_PASSWORD`，不会写入数据库。服务端生成随机会话令牌，数据库只写入 `auth_sessions.token_hash`、过期时间和选项；客户端按 `localStorage` 或 `sessionStorage` 保存令牌。**令牌本地存储是 AGENTS.md 红线 14 的唯一显式例外**：它是短时效、可吊销的会话凭证而非持久密钥，且由 CSP（`default-src 'self'`）与 API `Cache-Control: no-store` 缓解风险；而用户 PII（邮箱/姓名/用户名等，见 4.6）在 localStorage 的本地缓存副本一律脱敏——`settings:profile` / `settings:account` 落本地时经 `sanitizeProfileForStorage` / `sanitizeAccountForStorage` 白名单提取非敏感字段（bio/links/avatar、dob/language），完整值仅在内存态由服务端同步合并，设置页展示不受影响。
 
 **服务端模块内多文件组织**（与前端 2.3.1 对应，防止单大文件回潮）：
 

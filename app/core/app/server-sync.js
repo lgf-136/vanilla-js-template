@@ -119,13 +119,21 @@ export function mergeServerSettings(raw) {
     if (display.sidebarWidth != null) set(K('sidebar-width'), String(display.sidebarWidth));
     if (Array.isArray(display.hiddenNav)) set(K('hidden-nav'), JSON.stringify(display.hiddenNav));
   }
-  // 设置子页数据(profile/account/notifications):合法 JSON 直接写存储键,readSettings 会做形状校验
+  // 设置子页数据(profile/account/notifications):合法 JSON 写存储键,readSettings 会做形状校验。
+  // 红线 14 / ARCHITECTURE 4.6:profile/account 属敏感域,本地只写脱敏副本,
+  // 完整值暂存 serverDomains,末尾合并回内存态(设置页/顶栏展示不受影响)。
+  var serverDomains = {};
   ['profile', 'account', 'notifications'].forEach(function (domain) {
     var rawKey = 'settings:' + domain;
     if (typeof raw[rawKey] !== 'string' || !raw[rawKey]) return;
     try {
-      JSON.parse(raw[rawKey]);
-      set(K(domain), raw[rawKey]);
+      var parsed = JSON.parse(raw[rawKey]);
+      if (!parsed || typeof parsed !== 'object') return;
+      serverDomains[domain] = parsed;
+      var stored = parsed;
+      if (domain === 'profile') stored = App.settings.sanitizeProfileForStorage(parsed);
+      else if (domain === 'account') stored = App.settings.sanitizeAccountForStorage(parsed);
+      set(K(domain), JSON.stringify(stored));
     } catch (e) {
       /* 脏数据忽略,保持本地值 */
     }
@@ -152,7 +160,13 @@ export function mergeServerSettings(raw) {
   if (typeof raw['settings:activeProfile'] === 'string' && raw['settings:activeProfile']) {
     set(K('active-profile'), raw['settings:activeProfile']);
   }
-  return App.settings.readSettings();
+  var merged = App.settings.readSettings();
+  // 内存态使用服务端全量值(本地只存脱敏副本),避免设置页展示被本地脱敏截断
+  if (serverDomains.profile) merged.profile = Object.assign({}, merged.profile, serverDomains.profile);
+  if (serverDomains.account) merged.account = Object.assign({}, merged.account, serverDomains.account);
+  if (serverDomains.notifications)
+    merged.notifications = Object.assign({}, merged.notifications, serverDomains.notifications);
+  return merged;
 }
 
 /** 服务端可覆盖的设置子集(排除 locale 等仅本地字段),用于变化检测 */

@@ -76,6 +76,36 @@ function sanitizeAvatar(avatar) {
   if (type === 'icon' && AVATAR_ICONS.indexOf(value) === -1) value = 'user';
   return { type: type, value: value };
 }
+
+/* ---------- 本地缓存脱敏(红线 14 / ARCHITECTURE 4.6) ---------- */
+// 敏感字段(邮箱/姓名/用户名等)只落服务端密文,localStorage 本地副本只保留非敏感展示字段;
+// 完整值由 syncSettingsFromServer 在内存态合并,设置页展示不受影响。
+/** profile 本地缓存保留字段(非敏感展示字段;username/email 属敏感字段不落本地) */
+var PROFILE_LOCAL_KEYS = ['bio', 'links', 'avatar'];
+/** account 本地缓存保留字段(姓名属敏感字段不落本地) */
+var ACCOUNT_LOCAL_KEYS = ['dob', 'language'];
+
+/** 生成本地缓存的 profile 脱敏副本(白名单提取 + avatar 形状校验) */
+function sanitizeProfileForStorage(profile) {
+  var p = profile && typeof profile === 'object' ? profile : {};
+  var out = {};
+  PROFILE_LOCAL_KEYS.forEach(function (k) {
+    if (k === 'avatar') out[k] = sanitizeAvatar(p[k]);
+    else if (k === 'links') out[k] = Array.isArray(p[k]) ? p[k].slice(0, 16) : ['', ''];
+    else out[k] = typeof p[k] === 'string' ? p[k] : '';
+  });
+  return out;
+}
+
+/** 生成本地缓存的 account 脱敏副本(白名单提取) */
+function sanitizeAccountForStorage(account) {
+  var a = account && typeof account === 'object' ? account : {};
+  var out = {};
+  ACCOUNT_LOCAL_KEYS.forEach(function (k) {
+    out[k] = typeof a[k] === 'string' ? a[k] : '';
+  });
+  return out;
+}
 var ACCOUNT_DEFAULTS = { name: '', dob: '', language: '' };
 var NOTIFICATIONS_DEFAULTS = {
   type: 'all',
@@ -113,6 +143,8 @@ export {
   AVATAR_ICONS,
   AVATAR_EMOJIS,
   sanitizeAvatar,
+  sanitizeProfileForStorage,
+  sanitizeAccountForStorage,
   PROFILE_DEFAULTS,
   ACCOUNT_DEFAULTS,
   NOTIFICATIONS_DEFAULTS,

@@ -26,6 +26,8 @@ import {
   SIDEBAR_MIN_WIDTH,
   SIDEBAR_MAX_WIDTH,
   sanitizeAvatar,
+  sanitizeProfileForStorage,
+  sanitizeAccountForStorage,
 } from './defaults.js';
 import { APPEARANCE_DEFAULTS, RADII, FONTS, readAppearance } from './appearance.js';
 import {
@@ -152,8 +154,9 @@ function persistSettings(s) {
   ];
   writeStorage(K('hidden-nav'), JSON.stringify(s.hiddenNav || []));
   writeStorage(K('sidebar-open'), String(!!s.sidebarOpen));
-  writeStorage(K('profile'), JSON.stringify(s.profile || PROFILE_DEFAULTS));
-  writeStorage(K('account'), JSON.stringify(s.account || ACCOUNT_DEFAULTS));
+  // 红线 14:本地副本脱敏(邮箱/姓名/用户名等敏感字段只落服务端密文),完整值由服务端同步在内存态合并
+  writeStorage(K('profile'), JSON.stringify(sanitizeProfileForStorage(s.profile || PROFILE_DEFAULTS)));
+  writeStorage(K('account'), JSON.stringify(sanitizeAccountForStorage(s.account || ACCOUNT_DEFAULTS)));
   writeStorage(K('notifications'), JSON.stringify(s.notifications || NOTIFICATIONS_DEFAULTS));
   writeStorage(
     K('workspaces'),
