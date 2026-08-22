@@ -18,6 +18,9 @@ const { clientIp } = require('../../core/http/client-ip');
 /* 登录暴力破解限流:只统计密码错误次数,成功登录后清空 */
 const loginThrottle = createThrottle();
 
+/* 会话表上限:超出删除最旧会话,防止表无限增长(结合过期清理) */
+const MAX_SESSIONS = 50;
+
 function authRoutes({ db, verifyPassword }) {
   async function login(req, res) {
     let body;
@@ -62,6 +65,14 @@ function authRoutes({ db, verifyPassword }) {
       expiresAt,
       expiry,
     ]);
+    // 会话表有界:顺带清理已过期会话 + 超出上限删除最旧会话
+    await db.run('DELETE FROM auth_sessions WHERE expires_at IS NOT NULL AND expires_at <= ?', [
+      new Date().toISOString(),
+    ]);
+    await db.run(
+      'DELETE FROM auth_sessions WHERE token_hash NOT IN (SELECT token_hash FROM auth_sessions ORDER BY created_at DESC LIMIT ?)',
+      [MAX_SESSIONS]
+    );
     return sendJson(res, 200, { token, expiresAt, expiry });
   }
 
