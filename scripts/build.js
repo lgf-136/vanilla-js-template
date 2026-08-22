@@ -197,6 +197,33 @@ function hash8(content) {
   return createHash('sha256').update(content).digest('hex').slice(0, 8);
 }
 
+/** 压缩 HTML 空白:标签间空白压缩为单空格,<script> 块内容逐字节保留
+ * (CSP 用 sha256 哈希固定内联脚本,任何空白折叠都会导致哈希漂移、
+ * 生产构建后内联脚本被 CSP 拦截)。 */
+function compressHtml(html) {
+  const re = /<script>[\s\S]*?<\/script>/g;
+  let out = '';
+  let pos = 0;
+  let m;
+  while ((m = re.exec(html))) {
+    out += html
+      .slice(pos, m.index)
+      .split(/\s+/)
+      .join(' ')
+      .split('><')
+      .join('>\n<');
+    out += m[0]; // 内联脚本内容逐字节保留
+    pos = m.index + m[0].length;
+  }
+  out += html
+    .slice(pos)
+    .split(/\s+/)
+    .join(' ')
+    .split('><')
+    .join('>\n<');
+  return out;
+}
+
 function collectStaticReferences(html) {
   const attributes = ['href="', 'src="', 'data-nova-href="', 'data-nova-src="'];
   const references = [];
@@ -245,7 +272,7 @@ async function main() {
     const fingerprinted = reference.includes('?') ? reference : `${reference}?v=${hash8(content)}`;
     fingerprintedHtml = fingerprintedHtml.split(reference).join(fingerprinted);
   }
-  writeFileSync(indexPath, fingerprintedHtml.split(/\s+/).join(' ').split('><').join('>\n<'));
+  writeFileSync(indexPath, compressHtml(fingerprintedHtml));
 
   let total = 0;
   for (const file of walk(DIST)) total += statSync(file).size;

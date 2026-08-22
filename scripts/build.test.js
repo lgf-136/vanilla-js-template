@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -46,6 +47,16 @@ test('production build contains the migrated template structure and valid JavaSc
   assert.match(html, /app\/styles\/critical\.css/);
   assert.match(html, /app\/core\/bootstrap\.js/);
   assert.doesNotMatch(html, /app\/lib\/chart\.umd\.js/);
+
+  // CSP 哈希回归:build.js 压缩 HTML 时必须逐字节保留内联脚本,
+  // 否则 dist 内联脚本哈希与 CSP 声明不一致、生产环境内联脚本被拦截
+  const distScript = html.match(/<script>([\s\S]*?)<\/script>/);
+  assert.ok(distScript, 'dist/index.html 应包含内联 PREPAINT 脚本');
+  const distHash = createHash('sha256').update(distScript[1], 'utf8').digest('base64');
+  assert.ok(
+    html.includes(`'sha256-${distHash}'`),
+    `dist CSP 必须包含内联脚本当前哈希 sha256-${distHash}`
+  );
   assert.equal(existsSync(join(DIST, 'app/styles/tokens.css')), true);
   assert.equal(existsSync(join(DIST, 'app/styles/utilities.css')), true);
   assert.doesNotMatch(html, /app\/template|server\/template/);
