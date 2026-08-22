@@ -75,7 +75,7 @@ import { authLabel, descendants, esc, escAttr, findRoute, icon, isPublic, member
       '">' +
       icon('settings', '') +
       '</button>' +
-      '<div class="hub-dd-menu hub-logmenu" data-dropdown-menu style="right:0;left:auto;min-width:17rem">' +
+      '<div class="hub-dd-menu hub-logmenu" data-dropdown-menu style="right: 0;left: auto;min-width: calc(var(--spacing) * 68)">' +
       '<div class="hub-dd-label">' +
       esc(t('apihub.logSettings')) +
       '</div>' +
@@ -135,7 +135,7 @@ import { authLabel, descendants, esc, escAttr, findRoute, icon, isPublic, member
       '</span>' +
       icon('chevron-down', '') +
       '</button>' +
-      '<div class="hub-dd-menu" data-dropdown-menu style="right:0;left:auto;min-width:12rem">' +
+      '<div class="hub-dd-menu" data-dropdown-menu style="right: 0;left: auto;min-width: calc(var(--spacing) * 48)">' +
       '<div class="hub-dd-label">' +
       esc(t('apihub.authDefaults')) +
       '</div>' +
@@ -154,14 +154,14 @@ import { authLabel, descendants, esc, escAttr, findRoute, icon, isPublic, member
         })
         .join('') +
       (showKey
-        ? '<div class="hub-dd-label" style="padding-top:0.375rem">' +
+        ? '<div class="hub-dd-label" style="padding-top: calc(var(--spacing) * 1.5)">' +
           esc(t('apihub.defaultApiKey')) +
           '</div>' +
           '<input type="password" class="' + App.ui.inputClass() + '" data-hub-default-apikey placeholder="' +
           escAttr(t('apihub.defaultApiKey')) +
           '" value="' +
           escAttr(state.secrets.defaultApiKey || '') +
-          '" style="width:calc(100% - 0.5rem);margin:0 0.25rem 0.25rem" />'
+          '" style="width:calc(100% - var(--spacing) * 2);margin: 0 calc(var(--spacing) * 1) calc(var(--spacing) * 1)" />'
         : '') +
       '</div></span>'
     );
@@ -288,7 +288,7 @@ import { authLabel, descendants, esc, escAttr, findRoute, icon, isPublic, member
       '</span>' +
       icon('chevron-down', '') +
       '</button>' +
-      '<div class="hub-dd-menu" data-dropdown-menu style="left:0;right:auto;min-width:10rem">' +
+      '<div class="hub-dd-menu" data-dropdown-menu style="left: 0;right: auto;min-width: calc(var(--spacing) * 40)">' +
       '<div class="hub-dd-label">' +
       esc(t('apihub.module')) +
       '</div>' +

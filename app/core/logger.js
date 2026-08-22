@@ -20,10 +20,10 @@
   /** 控制台 %c 样式:等级徽标 + 模块标签 */
   var STYLES = {
     badge: {
-      debug: 'background:var(--nova-ink);color:var(--nova-cyan);font-weight:700;border-radius:3px;padding:0 5px',
-      info: 'background:var(--nova-cyan);color:var(--nova-white);font-weight:700;border-radius:3px;padding:0 5px',
-      warn: 'background:var(--nova-warning);color:var(--nova-white);font-weight:700;border-radius:3px;padding:0 5px',
-      error: 'background:var(--nova-danger);color:var(--nova-white);font-weight:700;border-radius:3px;padding:0 5px',
+      debug: 'background:var(--nova-ink);color:var(--nova-cyan);font-weight:700;border-radius:3px;padding:0 calc(var(--spacing) * 1.25)',
+      info: 'background:var(--nova-cyan);color:var(--nova-white);font-weight:700;border-radius:3px;padding:0 calc(var(--spacing) * 1.25)',
+      warn: 'background:var(--nova-warning);color:var(--nova-white);font-weight:700;border-radius:3px;padding:0 calc(var(--spacing) * 1.25)',
+      error: 'background:var(--nova-danger);color:var(--nova-white);font-weight:700;border-radius:3px;padding:0 calc(var(--spacing) * 1.25)',
     },
     project: 'color:var(--nova-purple);font-weight:700',
     module: 'color:var(--nova-muted)',

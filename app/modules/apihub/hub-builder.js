@@ -162,7 +162,7 @@ import { authMode, esc, escAttr, findRoute, hasBody, icon, persistHistory, rowsT
       '</span>' +
       icon('chevron-down', '') +
       '</button>' +
-      '<div class="hub-dd-menu" data-dropdown-menu style="left:0;right:auto;min-width:6.5rem">' +
+      '<div class="hub-dd-menu" data-dropdown-menu style="left: 0;right: auto;min-width: calc(var(--spacing) * 26)">' +
       ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
         .map(function (mm) {
           return (
@@ -171,7 +171,7 @@ import { authMode, esc, escAttr, findRoute, hasBody, icon, persistHistory, rowsT
             '">' +
             '<span class="hub-method ' +
             methodClass(mm) +
-            '" style="min-width:2.75rem;height:1.125rem;font-size:0.5625rem;margin:0">' +
+            '" style="min-width:calc(var(--spacing) * 11);height: calc(var(--spacing) * 4.5);font-size:0.5625rem;margin: 0">' +
             mm +
             '</span>' +
             '</button>'

@@ -111,8 +111,8 @@
     var style = document.createElement('style');
     style.setAttribute('data-tooltip-style', '');
     style.textContent =
-      '.ui-tip{position:fixed;z-index:2000;max-width:18rem;padding:.3125rem .5625rem;border-radius:.375rem;' +
-      'background:var(--nova-ink);color:var(--nova-white);font-size:.75rem;line-height:1.4;font-weight:500;' +
+      '.ui-tip{position:fixed;z-index:2000;max-width: calc(var(--spacing) * 72);padding: calc(var(--spacing) * 1.25) calc(var(--spacing) * 2.25);border-radius:calc(var(--radius) * 0.6);' +
+      'background:var(--nova-ink);color:var(--nova-white);font-size:.75rem;line-height: 1.4;font-weight:500;' +
       'box-shadow:0 4px 12px var(--shadow-color-popover);border:1px solid color-mix(in oklab, var(--nova-white) 8%, transparent);' +
       'pointer-events:none;white-space:normal;word-break:break-word}';
     document.head.appendChild(style);

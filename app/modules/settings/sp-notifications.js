@@ -64,7 +64,7 @@ import { contentSection } from './sp-common.js';
       '<h3 class="mb-4 text-lg font-medium" style="font-family:var(--font-heading-base,inherit)">' +
       t('notifications.emailSection') +
       '</h3>' +
-      '<div style="display:flex;flex-direction:column;gap:1rem">' +
+      '<div style="display:flex;flex-direction:column;gap: calc(var(--spacing) * 4)">' +
       switchRow(
         t,
         'notifications.communication.label',
@@ -107,7 +107,7 @@ import { contentSection } from './sp-common.js';
       '<span class="sp-checkbox">' +
       icon().iconSvg('check', { class: 'size-3' }) +
       '</span>' +
-      '<div class="sp-switch-info" style="gap:0.25rem">' +
+      '<div class="sp-switch-info" style="gap:calc(var(--spacing) * 1)">' +
       '<span class="sp-label" style="line-height:1.5">' +
       t('notifications.mobile.label') +
       '</span>' +

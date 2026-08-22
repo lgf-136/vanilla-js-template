@@ -15,7 +15,7 @@ import { renderSettingsSheet, rerenderSheetContent } from './sheet.js';
     return (
       '<div class="group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar h-full min-h-0!" style="--sidebar-width:' +
       settings.sidebarWidth +
-      'px;--sidebar-width-icon:3rem" data-slot="sidebar-wrapper">' +
+      'px;--sidebar-width-icon:calc(var(--spacing) * 12)" data-slot="sidebar-wrapper">' +
       sidebarHtml(navItems, settings, t, pathname, openSubmenus) +
       '<main data-slot="sidebar-inset" class="relative flex w-full flex-1 flex-col bg-background md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2 flex min-h-0 flex-1 flex-col">' +
       headerHtml(t, settings) +

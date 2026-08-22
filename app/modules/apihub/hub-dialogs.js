@@ -151,13 +151,13 @@ import { authLabel, customById, esc, escAttr, findRoute, icon, memberships, stat
       t('apihub.method') +
       '</label>' +
       '<div class="hub-method-select" data-dropdown>' +
-      '<button type="button" data-dropdown-trigger style="width:100%;color:var(--foreground)">' +
+      '<button type="button" data-dropdown-trigger style="width: 100%;color:var(--foreground)">' +
       '<span data-hub-f-method-label>' +
       dialogMethod +
       '</span>' +
       icon('chevron-down', 'size-3') +
       '</button>' +
-      '<div class="hub-dd-menu" data-dropdown-menu style="left:0;right:auto;min-width:6.5rem">' +
+      '<div class="hub-dd-menu" data-dropdown-menu style="left: 0;right: auto;min-width: calc(var(--spacing) * 26)">' +
       ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
         .map(function (m) {
           return (
@@ -166,7 +166,7 @@ import { authLabel, customById, esc, escAttr, findRoute, icon, memberships, stat
             '">' +
             '<span class="hub-method ' +
             methodClass(m) +
-            '" style="min-width:2.75rem;height:1.125rem;font-size:0.5625rem;margin:0">' +
+            '" style="min-width:calc(var(--spacing) * 11);height: calc(var(--spacing) * 4.5);font-size:0.5625rem;margin: 0">' +
             m +
             '</span>' +
             '</button>'

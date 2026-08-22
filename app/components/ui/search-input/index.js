@@ -94,19 +94,19 @@
     var style = document.createElement('style');
     style.setAttribute('data-search-input-style', '');
     style.textContent =
-      '.ui-search{position:relative;display:flex;align-items:center;min-width:0;flex:1 1 auto}' +
-      '.ui-search-ic{position:absolute;left:.5625rem;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;color:var(--muted-foreground);pointer-events:none}' +
-      '.ui-search-ic svg{width:.875rem;height:.875rem}' +
-      '.ui-search-input{width:100%;height:2rem;box-sizing:border-box;border:1px solid var(--input);border-radius:.5rem;background:var(--background);color:var(--foreground);padding:0 1.875rem 0 1.875rem;font-size:.8125rem;font-family:inherit;outline:none}' +
+      '.ui-search{position:relative;display:flex;align-items:center;min-width: 0;flex:1 1 auto}' +
+      '.ui-search-ic{position:absolute;left: calc(var(--spacing) * 2.25);top: 50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;color:var(--muted-foreground);pointer-events:none}' +
+      '.ui-search-ic svg{width: calc(var(--spacing) * 3.5);height: calc(var(--spacing) * 3.5)}' +
+      '.ui-search-input{width:100%;height: calc(var(--spacing) * 8);box-sizing:border-box;border:1px solid var(--input);border-radius:var(--radius-md);background:var(--background);color:var(--foreground);padding: 0 calc(var(--spacing) * 7.5) 0 calc(var(--spacing) * 7.5);font-size:.8125rem;font-family:inherit;outline:none}' +
       '.ui-search-input:focus-visible{border-color:var(--ring);box-shadow:0 0 0 2px color-mix(in oklab,var(--ring) 40%,transparent)}' +
-      '.ui-search-clear{position:absolute;right:.375rem;top:50%;transform:translateY(-50%);display:none;align-items:center;justify-content:center;width:1.125rem;height:1.125rem;padding:0;border:0;border-radius:9999px;background:var(--muted);color:var(--muted-foreground);cursor:pointer}' +
+      '.ui-search-clear{position:absolute;right: calc(var(--spacing) * 1.5);top: 50%;transform:translateY(-50%);display:none;align-items:center;justify-content:center;width: calc(var(--spacing) * 4.5);height: calc(var(--spacing) * 4.5);padding: 0;border:0;border-radius:var(--radius-pill);background:var(--muted);color:var(--muted-foreground);cursor:pointer}' +
       '.ui-search-clear.is-show{display:inline-flex}' +
       '.ui-search-clear:hover{background:var(--accent);color:var(--foreground)}' +
-      '.ui-search-clear svg{width:.6875rem;height:.6875rem}' +
+      '.ui-search-clear svg{width: calc(var(--spacing) * 2.75);height: calc(var(--spacing) * 2.75)}' +
       /* 紧凑变体(侧栏树内搜索) */
-      '.ui-search.is-compact .ui-search-input{height:1.625rem;border-radius:.4375rem;font-size:.75rem;padding-left:1.5rem}' +
-      '.ui-search.is-compact .ui-search-ic{left:.4375rem}' +
-      '.ui-search.is-compact .ui-search-ic svg{width:.75rem;height:.75rem}';
+      '.ui-search.is-compact .ui-search-input{height:calc(var(--spacing) * 6.5);border-radius:calc(var(--radius) * 0.7);font-size:.75rem;padding-left: calc(var(--spacing) * 6)}' +
+      '.ui-search.is-compact .ui-search-ic{left:calc(var(--spacing) * 1.75)}' +
+      '.ui-search.is-compact .ui-search-ic svg{width:calc(var(--spacing) * 3);height: calc(var(--spacing) * 3)}';
     document.head.appendChild(style);
   }
   injectStyles();

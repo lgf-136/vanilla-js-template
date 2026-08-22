@@ -17,35 +17,35 @@
 
   var PF_STYLE =
     // 弹窗通用
-    '.pf-dialog-mask{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:1rem}' +
-    '.pf-dialog-overlay{position:absolute;inset:0;background:var(--overlay-bg)}' +
-    '.pf-dialog-panel{position:relative;width:100%;max-width:26rem;max-height:calc(100vh - 2rem);overflow-y:auto;border:1px solid var(--border);border-radius:.75rem;background:var(--popover);color:var(--popover-foreground);padding:1.25rem;box-shadow:0 20px 50px -12px var(--shadow-color-dialog)}' +
-    '.pf-desc{display:block;margin-top:.25rem;font-size:.8125rem;color:var(--muted-foreground)}' +
-    '.pf-list{display:flex;flex-direction:column;gap:.375rem;margin-top:1rem}' +
+    '.pf-dialog-mask{position:fixed;inset: 0;z-index:60;display:flex;align-items:center;justify-content:center;padding: calc(var(--spacing) * 4)}' +
+    '.pf-dialog-overlay{position:absolute;inset: 0;background:var(--overlay-bg)}' +
+    '.pf-dialog-panel{position:relative;width: 100%;max-width: calc(var(--spacing) * 104);max-height: calc(100vh - var(--spacing) * 8);overflow-y:auto;border:1px solid var(--border);border-radius:calc(var(--radius) * 1.2);background:var(--popover);color:var(--popover-foreground);padding: calc(var(--spacing) * 5);box-shadow:0 20px 50px -12px var(--shadow-color-dialog)}' +
+    '.pf-desc{display:block;margin-top: calc(var(--spacing) * 1);font-size:.8125rem;color:var(--muted-foreground)}' +
+    '.pf-list{display:flex;flex-direction:column;gap: calc(var(--spacing) * 1.5);margin-top: calc(var(--spacing) * 4)}' +
     '.pf-row{position:relative;display:flex;align-items:center}' +
-    '.pf-row-main{flex:1;min-width:0;display:flex;align-items:center;gap:.625rem;padding:.5rem;border-radius:.5rem;text-align:left}' +
+    '.pf-row-main{flex:1;min-width: 0;display:flex;align-items:center;gap: calc(var(--spacing) * 2.5);padding: calc(var(--spacing) * 2);border-radius:var(--radius-md);text-align:left}' +
     '.pf-row-main:hover{background:var(--accent)}' +
-    '.pf-badge{display:flex;align-items:center;justify-content:center;width:1.75rem;height:1.75rem;flex:none;border-radius:.5rem;background:var(--muted);color:var(--muted-foreground)}' +
-    '.pf-badge svg{width:1rem;height:1rem}' +
+    '.pf-badge{display:flex;align-items:center;justify-content:center;width: calc(var(--spacing) * 7);height: calc(var(--spacing) * 7);flex:none;border-radius:var(--radius-md);background:var(--muted);color:var(--muted-foreground)}' +
+    '.pf-badge svg{width: calc(var(--spacing) * 4);height: calc(var(--spacing) * 4)}' +
     '.pf-row-main.is-active .pf-badge{background:color-mix(in oklab, var(--primary) 12%, var(--background));color:var(--primary)}' +
-    '.pf-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.875rem;font-weight:500}' +
+    '.pf-name{flex:1;min-width: 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.875rem;font-weight:500}' +
     '.pf-check{display:flex;align-items:center;flex:none;color:var(--primary)}' +
-    '.pf-check svg{width:1rem;height:1rem}' +
-    '.pf-actions{display:none;align-items:center;gap:2px;margin-left:auto;padding-right:.25rem}' +
+    '.pf-check svg{width: calc(var(--spacing) * 4);height: calc(var(--spacing) * 4)}' +
+    '.pf-actions{display:none;align-items:center;gap: 2px;margin-left: auto;padding-right: calc(var(--spacing) * 1)}' +
     '.pf-row:hover .pf-actions{display:flex}' +
-    '.pf-actions button{display:inline-flex;align-items:center;justify-content:center;width:1.5rem;height:1.5rem;padding:0;border:0;border-radius:.375rem;background:transparent;color:var(--muted-foreground);cursor:pointer}' +
+    '.pf-actions button{display:inline-flex;align-items:center;justify-content:center;width: calc(var(--spacing) * 6);height: calc(var(--spacing) * 6);padding: 0;border:0;border-radius:calc(var(--radius) * 0.6);background:transparent;color:var(--muted-foreground);cursor:pointer}' +
     '.pf-actions button:hover{background:var(--muted);color:var(--foreground)}' +
     '.pf-actions button.pf-delete:hover{background:var(--destructive);color:var(--primary-foreground)}' +
-    '.pf-actions svg{width:.875rem;height:.875rem}' +
-    '.pf-add{display:flex;align-items:center;gap:.5rem;width:100%;margin-top:.75rem;padding:.5rem;border:1px dashed var(--border);border-radius:.5rem;background:transparent;color:var(--foreground);font-size:.875rem;cursor:pointer}' +
+    '.pf-actions svg{width: calc(var(--spacing) * 3.5);height: calc(var(--spacing) * 3.5)}' +
+    '.pf-add{display:flex;align-items:center;gap: calc(var(--spacing) * 2);width: 100%;margin-top: calc(var(--spacing) * 3);padding: calc(var(--spacing) * 2);border:1px dashed var(--border);border-radius:var(--radius-md);background:transparent;color:var(--foreground);font-size:.875rem;cursor:pointer}' +
     '.pf-add:hover{background:var(--accent)}' +
-    '.pf-add-icon{display:flex;align-items:center;justify-content:center;width:1.5rem;height:1.5rem;border-radius:.375rem;background:var(--muted);color:var(--muted-foreground)}' +
-    '.pf-add-icon svg{width:.875rem;height:.875rem}' +
-    '.pf-field-label{display:block;margin-bottom:.5rem;font-size:.875rem;font-weight:500}' +
-    '.pf-input{width:100%;height:2.5rem;box-sizing:border-box;border:1px solid var(--input);border-radius:var(--radius-md);background:var(--background);color:var(--foreground);padding:0 .75rem;font-size:.875rem;outline:none}' +
+    '.pf-add-icon{display:flex;align-items:center;justify-content:center;width: calc(var(--spacing) * 6);height: calc(var(--spacing) * 6);border-radius:calc(var(--radius) * 0.6);background:var(--muted);color:var(--muted-foreground)}' +
+    '.pf-add-icon svg{width: calc(var(--spacing) * 3.5);height: calc(var(--spacing) * 3.5)}' +
+    '.pf-field-label{display:block;margin-bottom: calc(var(--spacing) * 2);font-size:.875rem;font-weight:500}' +
+    '.pf-input{width: 100%;height: calc(var(--spacing) * 10);box-sizing:border-box;border:1px solid var(--input);border-radius:var(--radius-md);background:var(--background);color:var(--foreground);padding: 0 calc(var(--spacing) * 3);font-size:.875rem;outline:none}' +
     '.pf-input:focus-visible{border-color:var(--ring);box-shadow:0 0 0 2px color-mix(in oklab, var(--ring) 40%, transparent)}' +
     '.pf-input.pf-invalid{border-color:var(--destructive)}' +
-    '.pf-error{display:none;margin-top:.25rem;font-size:.75rem;color:var(--destructive)}' +
+    '.pf-error{display:none;margin-top: calc(var(--spacing) * 1);font-size:.75rem;color:var(--destructive)}' +
     '.pf-error.is-visible{display:block}';
 
   function t() {

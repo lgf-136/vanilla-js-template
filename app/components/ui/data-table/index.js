@@ -63,34 +63,34 @@ import { bindEvents } from './events.js';
     style.setAttribute('data-data-table-style', '');
     style.textContent =
       /* 工具栏搜索宽度 */
-      '.dt-search-wrap{width:9.375rem;flex:none}' +
-      '@media (min-width:1024px){.dt-search-wrap{width:15.625rem}}' +
+      '.dt-search-wrap{width: calc(var(--spacing) * 37.5);flex:none}' +
+      '@media (min-width: 1024px){.dt-search-wrap{width:calc(var(--spacing) * 62.5)}}' +
       /* 过滤下拉 */
-      '.dt-filter-list{max-height:18rem;overflow-y:auto;padding:.25rem}' +
-      '.dt-filter-search-wrap{margin:.25rem .5rem .5rem;min-width:0}' +
-      '.dt-filter-empty{padding:1.5rem .5rem;font-size:.875rem;color:var(--muted-foreground);text-align:center}' +
+      '.dt-filter-list{max-height:calc(var(--spacing) * 72);overflow-y:auto;padding: calc(var(--spacing) * 1)}' +
+      '.dt-filter-search-wrap{margin:calc(var(--spacing) * 1) calc(var(--spacing) * 2) calc(var(--spacing) * 2);min-width: 0}' +
+      '.dt-filter-empty{padding:calc(var(--spacing) * 6) calc(var(--spacing) * 2);font-size:.875rem;color:var(--muted-foreground);text-align:center}' +
       /* 表格 */
       '.dt-table-wrap{border:1px solid var(--border);border-radius:var(--radius,0.5rem);overflow:auto;background:var(--card)}' +
-      '.dt-table{width:100%;min-width:36rem;border-collapse:collapse;font-size:.875rem}' +
-      '.dt-th{height:2.5rem;padding:0 .5rem;text-align:left;font-weight:500;color:var(--foreground);border-bottom:1px solid var(--border);white-space:nowrap;background:var(--card);vertical-align:middle}' +
+      '.dt-table{width: 100%;min-width: calc(var(--spacing) * 144);border-collapse:collapse;font-size:.875rem}' +
+      '.dt-th{height: calc(var(--spacing) * 10);padding: 0 calc(var(--spacing) * 2);text-align:left;font-weight:500;color:var(--foreground);border-bottom: 1px solid var(--border);white-space:nowrap;background:var(--card);vertical-align:middle}' +
       '.dt-th .dt-checkbox .dt-check,.dt-td .dt-checkbox .dt-check{transform:translateY(2px)}' +
-      '.dt-td{height:3rem;padding:.75rem .5rem;border-bottom:1px solid var(--border);vertical-align:middle}' +
+      '.dt-td{height: calc(var(--spacing) * 12);padding: calc(var(--spacing) * 3) calc(var(--spacing) * 2);border-bottom: 1px solid var(--border);vertical-align:middle}' +
       '.dt-table tbody tr{transition:background-color .15s}' +
       '.dt-table tbody tr:hover{background:color-mix(in oklab,var(--muted) 50%,transparent)}' +
       '.dt-table tbody tr.is-selected{background:var(--muted)}' +
-      '.dt-table tbody tr:last-child .dt-td{border-bottom:none}' +
+      '.dt-table tbody tr:last-child .dt-td{border-bottom: none}' +
       /* 复选框(视觉方块 + 隐藏 input) */
-      '.dt-check{display:inline-flex;align-items:center;justify-content:center;width:1rem;height:1rem;flex:none;border-radius:calc(var(--radius,0.5rem)*.5);border:1px solid var(--border);background:var(--background);color:transparent;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}' +
-      '.dt-check svg{opacity:0;width:.875rem;height:.875rem}' +
+      '.dt-check{display:inline-flex;align-items:center;justify-content:center;width: calc(var(--spacing) * 4);height: calc(var(--spacing) * 4);flex:none;border-radius:calc(var(--radius,0.5rem)*.5);border:1px solid var(--border);background:var(--background);color:transparent;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}' +
+      '.dt-check svg{opacity:0;width: calc(var(--spacing) * 3.5);height: calc(var(--spacing) * 3.5)}' +
       '.dt-check.is-checked{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}' +
       '.dt-check.is-checked svg{opacity:1}' +
       '.dt-check.is-indeterminate{background:var(--primary);border-color:var(--primary)}' +
-      '.dt-check.is-indeterminate::after{content:\'\';display:block;width:.5rem;height:.125rem;border-radius:1px;background:var(--primary-foreground)}' +
-      '.dt-check-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}' +
+      '.dt-check.is-indeterminate::after{content:\'\';display:block;width: calc(var(--spacing) * 2);height: calc(var(--spacing) * 0.5);border-radius:1px;background:var(--primary-foreground)}' +
+      '.dt-check-input{position:absolute;width: 1px;height: 1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}' +
       /* 分页 */
-      '.dt-pagination{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:.5rem 1rem;border-top:1px solid var(--border);font-size:.875rem;color:var(--muted-foreground)}' +
+      '.dt-pagination{display:flex;align-items:center;justify-content:space-between;gap: calc(var(--spacing) * 4);flex-wrap:wrap;padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);border-top: 1px solid var(--border);font-size:.875rem;color:var(--muted-foreground)}' +
       /* 批量操作浮动条(固定在视口底部居中,毛玻璃药丸) */
-      '.dt-bulk-bar{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:.5rem;border:1px solid var(--border);border-radius:calc(var(--radius,0.5rem)*1.5);background:color-mix(in oklab,var(--background) 95%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--foreground);box-shadow:0 16px 48px var(--shadow-color-popover);padding:.5rem;transition:transform .3s ease}' +
+      '.dt-bulk-bar{position:fixed;bottom: calc(var(--spacing) * 6);left: 50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap: calc(var(--spacing) * 2);border:1px solid var(--border);border-radius:calc(var(--radius,0.5rem)*1.5);background:color-mix(in oklab,var(--background) 95%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--foreground);box-shadow:0 16px 48px var(--shadow-color-popover);padding: calc(var(--spacing) * 2);transition:transform .3s ease}' +
       '.dt-bulk-bar:hover{transform:translateX(-50%) scale(1.05)}';
     document.head.appendChild(style);
   }

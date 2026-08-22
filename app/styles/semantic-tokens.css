@@ -36,6 +36,9 @@
   --overlay-bg: rgb(0 0 0 / 0.5);
   --overlay-bg-soft: rgb(0 0 0 / 0.45);
 
+  /* 圆角补充（ARCHITECTURE 3.2：使用处禁止写死 rem 圆角，一律消费 --radius 派生 token） */
+  --radius-pill: 9999px;
+
   /* 阴影颜色阶梯：几何形状由使用处自由定义，颜色一律消费本层 token */
   --shadow-color-subtle: rgb(0 0 0 / 0.05);
   --shadow-color-card: rgb(0 0 0 / 0.08);

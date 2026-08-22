@@ -98,6 +98,7 @@ function checkBanned(file) {
     }
     checkModuleBoundary(file, src);
   }
+  checkInjectedSpacing(file, src);
   checkLineBudget(file, src);
   // 样式硬编码颜色检查（app/ 下 JS 内嵌样式与 CSS 文件）。
   // token 样式表与模板随附的静态 SVG/Chart.js 资源本身就是颜色定义，
@@ -115,6 +116,36 @@ function checkBanned(file) {
 
 function rel(file) {
   return file.startsWith(ROOT) ? file.slice(ROOT.length + 1) : file;
+}
+
+/** 红线 3：JS 注入样式串中禁止写死 rem/px 间距与圆角（lint 原盲区，只查了颜色） */
+function checkInjectedSpacing(file, src) {
+  const relPosix = rel(file).split(sep).join('/');
+  if (!relPosix.startsWith('app/') || !file.endsWith('.js')) return;
+  if (relPosix.startsWith('app/lib/')) return;
+  // CSS 声明形态 prop: value; — prop 前必须是非标识符字符，避免命中 --sidebar-width 等变量名、
+  // Tailwind 类串（px-2 / focus-visible:ring-[3px]）与 media 断点；font-size 属排版不在扫描范围
+  const SPACING_PROPS =
+    '(?:padding|margin|gap|width|height|top|right|bottom|left|inset|max-width|max-height|min-width|min-height|border-radius)(?:-[a-z]+)?';
+  // 值内排除括号：避免 matchMedia('(max-width: 767px)') 等运行时媒体查询被误判（值以 ) 结尾、无 ';'）
+  const re = new RegExp(`(?<![\\w-])(${SPACING_PROPS})\\s*:\\s*([^;{}()]+);`, 'g');
+  let m;
+  while ((m = re.exec(src))) {
+    const before = src.slice(0, m.index);
+    // 跳过 @media (...) 断点参数（如 min-width: 1024px）
+    if (before.lastIndexOf('@media') > before.lastIndexOf('{')) continue;
+    const val = m[2];
+    // token 驱动（calc(var(--spacing) * N) / var(--radius) 等）与回退链路（var(--radius, 0.5rem)，
+    // ARCHITECTURE 3.7.2 明确要求带 fallback）以及动态插值（${settings.sidebarWidth}px 用户值）豁免
+    if (val.indexOf('var(--') !== -1 || /\$\{/.test(val)) continue;
+    const lit = val.match(/(\d+(?:\.\d+)?|\.\d+)(rem|px)\b/);
+    if (!lit) continue;
+    const num = parseFloat(lit[1]);
+    if (lit[2] === 'px' && num < 4) continue; // 发丝线（1-3px，如分隔线/描边）豁免
+    errors.push(
+      `禁止 JS 注入样式写死间距 ${lit[0]}（用 calc(var(--spacing) * N) / var(--radius) token，红线 3）→ ${rel(file)}:${lineOf(src, m.index)}`
+    );
+  }
 }
 
 /** 红线 4：app/modules/<A>/ 内部文件不得 import app/modules/<B>/ 的文件 */
