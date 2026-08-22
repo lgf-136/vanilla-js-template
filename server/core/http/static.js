@@ -16,6 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const zlib = require('node:zlib');
 const { MIME } = require('./mime');
 const { isPublicAsset } = require('./allowed');
 const { SECURITY_HEADERS } = require('./headers');
@@ -28,6 +29,41 @@ function cacheControl(pathname) {
 /** 弱 ETag:基于文件大小 + 修改时间,stat 即可得到,无需读文件内容 */
 function etag(st) {
   return 'W/"' + st.size.toString(16) + '-' + Math.round(st.mtimeMs).toString(16) + '"';
+}
+
+/* ---------- gzip 压缩(首屏传输优化:tokens.css 380KB → 38KB) ---------- */
+
+/** 可压缩 MIME:文本 / JS / CSS / JSON / SVG;字体(woff2)与图片本身已压缩,跳过 */
+const COMPRESSIBLE_RE = /^(text\/|application\/(javascript|json|xml|xhtml\+xml|svg\+xml)|image\/svg\+xml)/;
+
+/** 小于该字节数的文件不压缩(压缩收益 < CPU 开销) */
+const MIN_GZIP_BYTES = 512;
+
+/** 压缩缓存上限:静态文件内存缓存,key 含 size+mtime,dev 改文件自动失效 */
+const GZIP_CACHE_MAX = 64;
+const gzipCache = new Map();
+
+/** 客户端是否接受 gzip(纯函数,便于测试) */
+function acceptsGzip(acceptEncoding) {
+  return typeof acceptEncoding === 'string' && /\bgzip\b/i.test(acceptEncoding);
+}
+
+/** 该响应是否应压缩(纯函数):可压缩 MIME + 体积达标 + 客户端接受 */
+function shouldGzip(contentType, size, acceptEncoding) {
+  if (!acceptsGzip(acceptEncoding)) return false;
+  if (!COMPRESSIBLE_RE.test(contentType || '')) return false;
+  return size >= MIN_GZIP_BYTES;
+}
+
+/** gzipSync + 内存缓存(按 path:size:mtime 键控;超上限时整体清空,简单可控) */
+function gzipWithCache(filePath, mtimeMs, size, data) {
+  const key = filePath + ':' + size + ':' + Math.round(mtimeMs);
+  const hit = gzipCache.get(key);
+  if (hit) return hit;
+  if (gzipCache.size >= GZIP_CACHE_MAX) gzipCache.clear();
+  const compressed = zlib.gzipSync(data);
+  gzipCache.set(key, compressed);
+  return compressed;
 }
 
 function serveStatic(req, res, pathname, root) {
@@ -60,9 +96,10 @@ function serveStatic(req, res, pathname, root) {
         );
         return res.end('Not Found');
       }
+      const contentType = MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
       const headers = Object.assign(
         {
-          'Content-Type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream',
+          'Content-Type': contentType,
           'Cache-Control': cacheControl(pathname),
           ETag: etag(st2),
           'Last-Modified': new Date(st2.mtimeMs).toUTCString(),
@@ -89,6 +126,13 @@ function serveStatic(req, res, pathname, root) {
           );
           return res.end('Not Found');
         }
+        // gzip:命中可压缩 MIME + 客户端接受时压缩返回(带 Vary,弱 ETag 语义兼容)
+        if (shouldGzip(contentType, st2.size, req.headers['accept-encoding'])) {
+          headers['Content-Encoding'] = 'gzip';
+          headers['Vary'] = 'Accept-Encoding';
+          res.writeHead(200, headers);
+          return res.end(gzipWithCache(filePath, st2.mtimeMs, st2.size, data));
+        }
         res.writeHead(200, headers);
         res.end(data);
       });
@@ -96,4 +140,4 @@ function serveStatic(req, res, pathname, root) {
   });
 }
 
-module.exports = { serveStatic };
+module.exports = { serveStatic, acceptsGzip, shouldGzip, etag, cacheControl };
