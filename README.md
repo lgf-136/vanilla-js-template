@@ -89,6 +89,7 @@ AUTH_PASSWORD=admin123 npm run dev
 | `npm run lint` | 语法、禁用模式、颜色与 Tab 检查 |
 | `npm run i18n:check` | 校验模块三语言 key 集合一致 |
 | `npm run deps:check` | 校验无第三方依赖 |
+| `node scripts/commit-msg-check.js` | 校验提交信息符合 Conventional Commits（AGENTS.md 第 10 节） |
 | `npm run build` | 生成 `dist/` 静态产物 |
 | `npm run build:budget` | 校验首屏和模块懒加载文件 gzip 预算 |
 | `npm run db:migrate` | 执行数据库迁移 |

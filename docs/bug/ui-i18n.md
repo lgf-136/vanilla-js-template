@@ -52,3 +52,40 @@
 - 三语言必须同步补齐同一 key（漏一个 `i18n:check` 即失败）；
 - 新增排序/过滤/分页等通用表格文案优先放 core 词典 `dataTable.*`（宿主 `t` 自动兜底），
   模块词典只留业务文案（见 `9c2e83d` 提取公共组件时的清理约定）。
+
+---
+
+## BUG-002: 公共组件硬编码英文 fallback（toast/搜索空态/json-tree/交互提示）
+
+- 类型：ui-i18n
+- 严重度：中（违反红线 17，语言切换后仍显示英文）
+- 发现时间：2026-08-22（合规审计 M2）
+- 修复提交：c9055b2（fix(i18n) M2）
+- 涉及文件：app/components/ui/core/feedback.js（toast 内部文案）、
+  app/components/ui/json-tree/index.js、app/components/ui/core/misc.js、
+  app/core/interactions.js
+- 涉及组件：App.ui.toast / App.ui.jsonTree / App.ui.emptyState 等
+
+### 现象
+切换语言到 zh-CN / zh-TW 后，部分公共组件内嵌的提示文案仍为英文
+（如 json-tree 空态 "Nothing to show"、toast 兜底提示），三语言
+dicts.js 却已存在对应 key。
+
+### 根因
+组件作者直接写死英文字符串作为 fallback，未消费 `App.i18n` 词典；
+核心 dicts.js 中的 `common.*` key 存在但组件未引用。
+
+### 修复过程
+在 app/core/i18n/dicts.js 新增/复用 key，四处消费点改走
+`t('common.xxx')`（makeT 经当前 locale 解析），无字典时回退
+key 本身而非硬编码英文；`just i18n-check` 已覆盖 dicts.js 保证
+三语言 key 对齐。
+
+### 验证
+`just i18n-check` 通过；`just test` 全绿；切换三语言手测提示文案跟随。
+
+### 防坑指南
+1. 公共组件一切用户可见文案必须走 `App.i18n.makeT`（壳层词典）或
+   模块 i18n.js，禁止硬编码英文 fallback。
+2. i18n-check 现覆盖 dicts.js 与全部模块 i18n.js，新增 key 漏补
+   任意语言即 CI 失败。

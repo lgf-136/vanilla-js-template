@@ -4,8 +4,8 @@
  * 个人资料页的头像选择器:首字母 / 预设图标 / Emoji / 上传图片。
  * 上传图片与主流网站一致:自动裁切为方形(居中 cover)并压缩到
  * 256×256,原文件限制 200KB 以内,结果以 dataURL 存于 profile.avatar。
- * 渲染(avatarHtml)在 ui.js;状态(profile.avatar)由 settings.js
- * 校验并随个人资料同步数据库。
+ * 渲染(avatarHtml)在 app/components/ui/core/form.js;状态(profile.avatar)
+ * 由 settings.js 校验并随个人资料同步数据库。
  * ============================================================ */
 (function () {
   'use strict';

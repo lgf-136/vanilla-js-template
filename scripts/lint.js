@@ -22,7 +22,10 @@ const SCAN_DIRS = ['app', 'server', 'shared', 'scripts', 'tests', 'api'];
 const MAX_LINES = 500;
 /** 第三方/自动生成产物，不参与行数与颜色检查 */
 const VENDORED_PREFIX = 'app/lib/';
-/** 存量超 500 行的技术债清单：拆分后必须从此处移除，禁止新增条目 */
+/**
+ * 存量超 500 行的技术债清单（H1 拆分完成后已清空）：
+ * 只许减少不许增加，拆分后即从清单移除；任何人不得往这里新增条目。
+ */
 const LEGACY_OVERSIZED = new Set([]);
 
 const BANNED_PATTERNS = [

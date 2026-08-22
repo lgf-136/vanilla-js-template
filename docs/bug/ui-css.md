@@ -98,3 +98,45 @@
 - 复用模板内置工具类前先 `grep` 确认其定义内容，不要凭类名猜语义；
 - 涉及 token 别名/工具类定义变更时，检查是否已同步 ARCHITECTURE.md（§12 触发条件：
   新增/变更 token 契约）。
+
+---
+
+## BUG-003: JS 注入样式残留大量硬编码 rem/px 间距字面量（lint 盲区）
+
+- 类型：ui-css
+- 严重度：中（20+ 处违反红线 3，lint 只查颜色不查间距）
+- 发现时间：2026-08-22（合规审计 M1）
+- 修复提交：34a3f7a（style(ui) M1）
+- 涉及文件：app/components/ui/avatar/index.js、color-picker/index.js、
+  data-table/index.js、chats、tasks、apihub、settings 等模块注入样式；
+  app/components/layout/shell/index.js、app/core/logger.js
+- 涉及组件：App.ui.* 各组件与模块内联 style 串
+
+### 现象
+`just lint` 全绿，但 `grep -rnoE "[0-9.]+rem|px"` 在 app/ 下发现
+20+ 处 JS 注入样式串写死 `5rem / 1.25rem / .125rem / 40px` 等间距、
+尺寸、圆角字面量，违反红线 3「间距优先 --spacing 刻度、禁止写死」。
+
+### 根因
+lint 的颜色扫描只覆盖 hex/rgb/hsl/oklch 字面量，对 JS 字符串内联
+style 的 rem/px 间距/圆角无规则；历史迁移时大量组件把 shadcn 参考
+实现的间距数值直接搬进 style 串。
+
+### 修复过程
+1. 一次性转换脚本（临时，未入仓）把 20+ 处间距字面量改写为
+   `calc(var(--spacing) * N)`；发丝线（1–2px 边框/分割线）豁免保留；
+   圆角改 `var(--radius)` / 新增 `--radius-pill` token（semantic-tokens.css）。
+2. `scripts/lint.js` 新增扫描规则：JS 注入样式串（引号内 style 内容）
+   出现 `数字+rem|px` 的间距属性值即报错；豁免 `var(--radius, 0.5rem)`
+   回退链路与 matchMedia 断点。
+3. 逐文件核对剩余 rem 残留均为 font-size（排版）或 Tailwind 类串。
+
+### 验证
+`just lint` 通过且新规则可捕获回退（负向验证）；`just test` 全绿；
+git diff 抽查转换质量（无属性名/值错位）。
+
+### 防坑指南
+1. 新增/修改组件注入样式一律走 `calc(var(--spacing) * N)` 与
+   `var(--radius)` token；lint 已能自动拦截 JS 内联串的间距字面量。
+2. 回退链路 `var(--radius, 0.5rem)` 是架构 3.7.2 明确要求，lint 已豁免，
+   不要为了消除豁免而删掉 fallback。

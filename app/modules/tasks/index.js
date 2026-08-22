@@ -3,7 +3,7 @@
  * ------------------------------------------------------------
  * 复刻参考项目 shadcn-admin 的 Tasks 页(数据表格):
  * - 表格本体(搜索/过滤/排序/选择/批量/分页)已提取为公共组件
- *   App.ui.dataTable(见 app/components/ui/data-table.js)
+ *   App.ui.dataTable(见 app/components/ui/data-table/index.js)
  * - 本模块只保留业务:任务数据、行操作菜单、新建/编辑抽屉、导入/删除确认弹窗
  * 零依赖自研,数据为固定种子生成的 100 条任务。
  *

@@ -134,3 +134,40 @@ node --check 通过；浏览器刷新后 boot 正常。
 2. node --check 只验证语法不解析说明符，e2e 不经过浏览器引导——
    加载器改动必须真实浏览器刷新验证一次。
 
+
+---
+
+## BUG-005: tag-picker 完成按钮悬空调用已移除的 App.ui.closeDropdowns
+
+- 类型：ui-js
+- 严重度：低（静默 no-op，不抛错但逻辑残留）
+- 发现时间：2026-08-22（前端挂载面 harness 首跑捕获）
+- 修复提交：1a9dd39（test(ui) M4）
+- 涉及文件：app/components/ui/tag-picker/events.js（done 分支）
+- 涉及组件：App.ui.tagPicker（多选下拉「完成」按钮）
+
+### 现象
+点击多选下拉「完成」按钮时，代码尝试调用 `App.ui.closeDropdowns`，
+但该挂载键早已随旧 ui.js ESM 拆分移除，调用恒为 no-op。
+
+### 根因
+ui.js 拆分时 `closeDropdowns` 未被保留在 App.ui 挂载面，tag-picker
+的 done 分支沿用旧挂载键调用，且用 `App.ui.closeDropdowns ? ... : null`
+的防御写法掩盖了悬空引用；真正关闭下拉的 DOM 操作紧随其后，导致
+残留代码长期无感存在。
+
+### 修复过程
+删除 done 分支对 `App.ui.closeDropdowns` 的悬空调用（try/catch + 三目
+全部移除），仅保留紧随其后的 DOM 关闭逻辑（`menu.classList.remove('open')`
++ `aria-expanded` 清理），行为不变、代码收敛。
+
+### 验证
+新增 scripts/mount-surface.test.js「App.ui 消费面」用例：扫描 app/ 全部
+源码，任何 `App.ui.<key>` 必须命中已挂载键，此后再出现悬空调用即 CI 失败。
+`just test` 52/52 通过。
+
+### 防坑指南
+1. 组件/模块拆分后必须跑一次「挂载面消费面」静态扫描（harness 已固化），
+   防止旧挂载键的残留调用长期潜伏。
+2. 防御式调用（`X ? X() : null`）会掩盖悬空引用，删除旧 API 时
+   应全局搜索调用点，而不是依赖运行时静默。
