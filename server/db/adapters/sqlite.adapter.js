@@ -39,6 +39,20 @@ function init(opts) {
   const db = new DatabaseSync(dbPath);
   db.exec('PRAGMA journal_mode = WAL;');
 
+  /* 预编译语句缓存:热路径(会话/activeWorkspace/config)同一 SQL 反复执行,
+   * 避免每次 prepare 重复词法解析+编译;SQL 集合有限,上限 128,满则清空 */
+  const stmtCache = new Map();
+  const STMT_CACHE_MAX = 128;
+  function prepare(sql) {
+    let stmt = stmtCache.get(sql);
+    if (!stmt) {
+      if (stmtCache.size >= STMT_CACHE_MAX) stmtCache.clear();
+      stmt = db.prepare(sql);
+      stmtCache.set(sql, stmt);
+    }
+    return stmt;
+  }
+
   /** 建表 + 旧结构迁移(幂等;init 与 initSchema 共用,供 db:migrate 等脚本重复调用) */
   function applySchema(schema) {
     if (schema) db.exec(schema);
@@ -53,17 +67,17 @@ function init(opts) {
 
     /** 查询 → 行数组(对象) */
     query(sql, params) {
-      return db.prepare(sql).all(...normalizeParams(params));
+      return prepare(sql).all(...normalizeParams(params));
     },
 
     /** 单行查询 → 对象或 null */
     get(sql, params) {
-      return db.prepare(sql).get(...normalizeParams(params)) || null;
+      return prepare(sql).get(...normalizeParams(params)) || null;
     },
 
     /** 写操作 → { changes, lastInsertRowid } */
     run(sql, params) {
-      const r = db.prepare(sql).run(...normalizeParams(params));
+      const r = prepare(sql).run(...normalizeParams(params));
       return { changes: Number(r.changes), lastInsertRowid: Number(r.lastInsertRowid) };
     },
 
@@ -73,7 +87,7 @@ function init(opts) {
       db.exec('BEGIN');
       try {
         for (const s of statements) {
-          db.prepare(s.sql).run(...normalizeParams(s.params));
+          prepare(s.sql).run(...normalizeParams(s.params));
         }
         db.exec('COMMIT');
       } catch (e) {
