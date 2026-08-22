@@ -1,0 +1,51 @@
+# Docker 构建上下文排除清单
+# 防止 `COPY . .` 把敏感文件(本地 .env / 自动生成的加密密钥 / 本地数据库)
+# 打进镜像层;同时剔除运行时不用的目录,减小镜像体积。
+
+# 敏感文件(即使被 .gitignore 排除,构建上下文来自本地磁盘而非 git)
+.env
+.env.*
+!.env.example
+**/.secret-key
+server/.secret-key
+server/core/.secret-key
+
+# 本地数据 / 数据库
+data/
+*.sqlite
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+
+# 第三方依赖与构建产物(镜像零依赖,静态资源从源码 app/ 提供)
+node_modules/
+dist/
+build/
+*.lock
+
+# 版本控制与 CI
+.git/
+.gitignore
+.github/
+.dockerignore
+
+# 平台本地配置
+.wrangler/
+.vercel/
+deno.lock
+
+# 文档与开发脚本(运行时不需)
+docs/
+scripts/
+*.md
+
+# 编辑器 / 系统 / 临时
+.DS_Store
+*.swp
+.idea/
+.vscode/
+tmp/
+temp/
