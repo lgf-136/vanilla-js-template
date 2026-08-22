@@ -109,11 +109,7 @@ import { openTagDialog } from './popover.js';
     // 完成
     var done = t.closest('[data-tp-done]');
     if (done) {
-      try {
-        App.ui.closeDropdowns ? App.ui.closeDropdowns() : null;
-      } catch (err) {
-        /* noop */
-      }
+      // 关闭当前多选下拉(closeDropdowns 已随旧 ui.js 移除,此处直接操作 DOM)
       var wrap = t.closest('[data-dropdown]');
       var menu = wrap && wrap.querySelector('[data-dropdown-menu]');
       if (menu) menu.classList.remove('open');
