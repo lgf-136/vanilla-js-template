@@ -23,7 +23,7 @@ const MAX_LINES = 500;
 /** 第三方/自动生成产物，不参与行数与颜色检查 */
 const VENDORED_PREFIX = 'app/lib/';
 /** 存量超 500 行的技术债清单：拆分后必须从此处移除，禁止新增条目 */
-const LEGACY_OVERSIZED = new Set(['app/modules/chats/index.js']);
+const LEGACY_OVERSIZED = new Set([]);
 
 const BANNED_PATTERNS = [
   { re: /\bwindow\.(alert|confirm|prompt)\s*\(/, msg: '禁止 window.alert/confirm/prompt（用 ui-toast / ui-confirm / ui-dialog）' },
