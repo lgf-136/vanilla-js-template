@@ -56,6 +56,8 @@ import { contextMenuClose } from './context-menu.js';
     var hadOpen = !!document.querySelector('[data-dialog-overlay]');
     closeDialog();
     var o = opts || {};
+    // 关闭按钮 aria-label 兜底走核心词典(红线 17,不硬编码英文)
+    var t = App.i18n.makeT(document.documentElement.lang || App.i18n.DEFAULT_LOCALE);
     var overlay = document.createElement('div');
     overlay.className = 'ui-dialog-overlay';
     overlay.setAttribute('data-dialog-overlay', '');
@@ -66,7 +68,7 @@ import { contextMenuClose } from './context-menu.js';
       (o.head || '') +
       '</div>' +
       '<button type="button" class="ui-dialog-close" data-dialog-close aria-label="' +
-      escAttr(o.closeLabel || 'Close') +
+      escAttr(o.closeLabel || t('settings.close')) +
       '">' +
       App.icon.iconSvg('x', { class: 'size-4' }) +
       '</button>' +

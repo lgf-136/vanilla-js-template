@@ -53,13 +53,17 @@
       key === null ? '' : '<span class="jt-key">' + esc(String(key)) + '</span><span class="jt-colon">: </span>';
     var isObj = value !== null && typeof value === 'object' && !Array.isArray(value);
     var isArr = Array.isArray(value);
+    // 复制节点 tooltip/aria-label 兜底走核心词典(红线 17,不硬编码英文)
+    var copyLabel = inst.labels.copyNode
+      ? inst.labels.copyNode
+      : App.i18n.makeT(document.documentElement.lang || App.i18n.DEFAULT_LOCALE)('jsonTree.copyNode');
     var copyBtn =
       '<button type="button" class="jt-copy" data-jt-copy="' +
       escAttr(path) +
       '" data-tip="' +
-      escAttr(inst.labels.copyNode || 'Copy node') +
+      escAttr(copyLabel) +
       '" aria-label="' +
-      escAttr(inst.labels.copyNode || 'Copy node') +
+      escAttr(copyLabel) +
       '">' +
       ic('copy') +
       '</button>';

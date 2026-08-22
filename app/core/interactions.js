@@ -90,7 +90,11 @@
       'absolute top-3 right-3 flex size-7 items-center justify-center rounded-lg hover:bg-sidebar-accent';
     closeBtn.innerHTML =
       '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>';
-    closeBtn.setAttribute('aria-label', 'Close sidebar');
+    // aria-label 走核心词典(红线 17,不硬编码英文)
+    closeBtn.setAttribute(
+      'aria-label',
+      App.i18n.makeT(document.documentElement.lang || App.i18n.DEFAULT_LOCALE)('sidebar.closeSidebar')
+    );
     closeBtn.addEventListener('click', closeMobileSidebar);
     sheet.append(closeBtn);
     document.body.append(overlay, sheet);

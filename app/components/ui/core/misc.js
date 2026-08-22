@@ -120,7 +120,10 @@ import {
         ? '<button type="button" class="ui-tagpill-x" ' +
           o.removeAttrs +
           ' aria-label="' +
-          escAttr(o.removeLabel || '') +
+          escAttr(
+            o.removeLabel ||
+              App.i18n.makeT(document.documentElement.lang || App.i18n.DEFAULT_LOCALE)('common.remove')
+          ) +
           '"' +
           (o.tip ? ' data-tip="' + escAttr(o.tip) + '"' : '') +
           '>' +
