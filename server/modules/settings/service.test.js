@@ -100,6 +100,21 @@ test('getSettings: 敏感键解密返回，保留键跳过', async () => {
   assert.equal(out['settings:auth:x'], undefined);
 });
 
+test('getSettings: 敏感键解密抛错时显式降级为空串,不拖垮整体加载', async () => {
+  const db = makeDb();
+  const svc = createSettingsService({
+    db,
+    encrypt: enc,
+    decrypt: () => {
+      throw new Error('bad ciphertext');
+    },
+  });
+  await svc.putSettings({ 'settings:profile': 'secret@mail', 'settings:display': 'light' }, '');
+  const out = await svc.getSettings('');
+  assert.equal(out['settings:profile'], ''); // 降级为空串
+  assert.equal(out['settings:display'], 'light'); // 普通键不受影响
+});
+
 test("putSettings/deleteSettings: 保留键 settings:auth:* 一律 403 拒绝", async () => {
   const svc = makeService(makeDb());
   await assert.rejects(

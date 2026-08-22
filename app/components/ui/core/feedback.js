@@ -10,7 +10,7 @@
  * ============================================================ */
 'use strict';
 
-import { escAttr } from './utils.js';
+import { escAttr, escHtml } from './utils.js';
 import { contextMenuClose } from './context-menu.js';
 
   // ---------- Toast(轻提示,类 shadcn sonner 风格;各模块共用) ----------
@@ -34,10 +34,7 @@ import { contextMenuClose } from './context-menu.js';
       (type === 'error' ? 'text-destructive' : 'text-primary') +
       '" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>' +
       '<span class="flex-1 leading-5">' +
-      String(message == null ? '' : message)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;') +
+      escHtml(message) +
       '</span>';
     holder.appendChild(el);
     setTimeout(function () {

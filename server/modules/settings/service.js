@@ -51,7 +51,17 @@ function createSettingsService({ db, encrypt, decrypt }) {
     const out = {};
     rows.forEach((r) => {
       if (r.key.indexOf(RESERVED_SETTINGS_PREFIX) === 0) return;
-      out[r.key] = isSensitiveKey(r.key) ? decrypt(r.value) || '' : r.value;
+      if (!isSensitiveKey(r.key)) {
+        out[r.key] = r.value;
+        return;
+      }
+      // 敏感键解密失败(密钥轮换/密文损坏)时显式降级为空串,
+      // 不让单个坏值拖垮整个设置加载;后续保存会以新密钥重写覆盖
+      try {
+        out[r.key] = decrypt(r.value) || '';
+      } catch (e) {
+        out[r.key] = '';
+      }
     });
     return out;
   }
