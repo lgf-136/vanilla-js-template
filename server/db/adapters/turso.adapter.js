@@ -75,17 +75,19 @@ function init(opts) {
         body: JSON.stringify({ requests }),
       });
     } catch (e) {
-      // 常见原因:DATABASE_URL 配错 / 网络不通 / libsql:// 未归一化(此处已自动转换)
-      throw new Error('[db-turso] 无法连接 ' + endpoint + ':' + String((e && e.message) || e));
+      // 常见原因:DATABASE_URL 配错 / 网络不通 / libsql:// 未归一化(此处已自动转换)。
+      // 不回显 endpoint 与底层错误对象——其中可能携带库地址/凭据,避免落入日志。
+      throw new Error('[db-turso] 无法连接(请检查 DATABASE_URL 与网络)');
     }
     if (!r.ok) {
-      const text = await r.text();
-      throw new Error('[db-turso] HTTP ' + r.status + ': ' + text.slice(0, 300));
+      // 不回显远端响应体(可能包含 SQL 语句或查询数据),仅保留状态码
+      await r.text().catch(function () {}); // 消费剩余 body,释放连接
+      throw new Error('[db-turso] HTTP ' + r.status + '(远端拒绝,详情已脱敏)');
     }
     const body = await r.json();
     const results = Array.isArray(body) ? body : body.results;
     if (!Array.isArray(results)) {
-      throw new Error('[db-turso] 响应格式异常: ' + JSON.stringify(body).slice(0, 300));
+      throw new Error('[db-turso] 响应格式异常(详情已脱敏)');
     }
     return results;
   }

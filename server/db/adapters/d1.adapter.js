@@ -113,12 +113,13 @@ function initRest(opts) {
       body: JSON.stringify(body),
     });
     if (!r.ok) {
-      const text = await r.text();
-      throw new Error('[db-d1] HTTP ' + r.status + ': ' + text.slice(0, 300));
+      // 不回显远端响应体(可能包含 SQL 语句或查询数据),仅保留状态码
+      await r.text().catch(function () {}); // 消费剩余 body,释放连接
+      throw new Error('[db-d1] HTTP ' + r.status + '(远端拒绝,详情已脱敏)');
     }
     const data = await r.json();
     if (!data.success) {
-      throw new Error('[db-d1] API 错误: ' + JSON.stringify(data.errors || data).slice(0, 300));
+      throw new Error('[db-d1] API 错误(详情已脱敏)');
     }
     return (data.result && data.result[0]) || null;
   }
