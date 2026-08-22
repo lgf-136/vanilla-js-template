@@ -131,6 +131,26 @@ const DEFAULT_LOGGING = {
   excludeInternal: true,
 };
 
+/** 校验单条日志:method/path/status/ts 合法才保留(ip/ua/ms 可选) */
+function normalizeLogEntry(e) {
+  if (!isPlainObject(e)) return null;
+  if (METHODS.indexOf(e.method) === -1) return null;
+  if (typeof e.path !== 'string' || !e.path) return null;
+  const status = Number(e.status);
+  if (!Number.isFinite(status) || status < 0 || status > 599) return null;
+  const ts = Number(e.ts);
+  if (!Number.isFinite(ts) || ts <= 0) return null;
+  return {
+    method: String(e.method),
+    path: String(e.path).slice(0, 500),
+    status: Math.floor(status),
+    ts: Math.floor(ts),
+    ip: typeof e.ip === 'string' ? String(e.ip).slice(0, 64) : '',
+    ua: typeof e.ua === 'string' ? String(e.ua).slice(0, 200) : '',
+    ms: Number.isFinite(Number(e.ms)) ? Math.max(0, Math.floor(Number(e.ms))) : 0,
+  };
+}
+
 /** 常见机器人 / 爬虫 / 监测 UA 特征(排除机器人请求时命中即不记录) */
 const BOT_RE =
   /(bot|crawl|spider|slurp|bingpreview|googlebot|baiduspider|yandex|duckduckbot|facebookexternalhit|pingdom|uptimerobot|monitor|headless|curl\/|wget|python-requests|go-http-client|axios\/|node-fetch)/i;
@@ -205,4 +225,5 @@ module.exports = {
   shouldLogRequest,
   clientIp,
   handleCustom,
+  normalizeLogEntry,
 };

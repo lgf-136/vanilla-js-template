@@ -46,6 +46,7 @@ const {
   clientIp,
   handleCustom,
 } = require('./hub-shared');
+const { createLogWriter } = require('./hub-logs');
 const {
   defaultConfig,
   normalizeConfig,
@@ -209,67 +210,15 @@ function createHub(deps) {
 
   /* ---------- 请求访问日志(配置驱动:条数上限 / 保留天数 / 排除机器人 / 排除内部) ---------- */
 
-  /** 校验单条日志:method/path/status/ts 合法才保留(ip/ua/ms 可选) */
-  function normalizeLogEntry(e) {
-    if (!isPlainObject(e)) return null;
-    if (METHODS.indexOf(e.method) === -1) return null;
-    if (typeof e.path !== 'string' || !e.path) return null;
-    const status = Number(e.status);
-    if (!Number.isFinite(status) || status < 0 || status > 599) return null;
-    const ts = Number(e.ts);
-    if (!Number.isFinite(ts) || ts <= 0) return null;
-    return {
-      method: String(e.method),
-      path: String(e.path).slice(0, 500),
-      status: Math.floor(status),
-      ts: Math.floor(ts),
-      ip: typeof e.ip === 'string' ? String(e.ip).slice(0, 64) : '',
-      ua: typeof e.ua === 'string' ? String(e.ua).slice(0, 200) : '',
-      ms: Number.isFinite(Number(e.ms)) ? Math.max(0, Math.floor(Number(e.ms))) : 0,
-    };
-  }
-
-  /** 读请求访问日志(按工作空间过滤 + 保留天数 + 条数上限,倒序返回) */
-  async function loadLogs(cfg) {
-    await ensureMigrated();
-    const logging = (cfg && cfg.logging) || DEFAULT_LOGGING;
-    const ws = await resolveWorkspace();
-    const cutoff = Date.now() - (Number(logging.retentionDays) || 7) * 86400000;
-    const rows = await db.query(
-      'SELECT method, path, status, ts, ip, ua, ms FROM apihub_logs WHERE workspace_id = ? AND ts >= ? ORDER BY ts DESC LIMIT ?',
-      [ws, cutoff, Number(logging.maxLogs) || 500]
-    );
-    return (rows || []).map(normalizeLogEntry).filter(Boolean);
-  }
-
-  /** 追加一条请求访问日志(INSERT → 清理过期与超出上限的旧行) */
-  async function appendLog(entry, cfg) {
-    await ensureMigrated();
-    const clean = normalizeLogEntry(entry);
-    if (!clean) return;
-    const logging = (cfg && cfg.logging) || DEFAULT_LOGGING;
-    const ws = await resolveWorkspace();
-    await db.run(
-      'INSERT INTO apihub_logs (workspace_id, method, path, status, ts, ip, ua, ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [ws, clean.method, clean.path, clean.status, clean.ts, clean.ip, clean.ua, clean.ms]
-    );
-    // 清理:保留天数 + 条数上限(保留最新 maxLogs 行)
-    const cutoff = Date.now() - (Number(logging.retentionDays) || 7) * 86400000;
-    const maxLogs = Number(logging.maxLogs) || 500;
-    await db.run(
-      'DELETE FROM apihub_logs WHERE workspace_id = ? AND (ts < ? OR id NOT IN (SELECT id FROM apihub_logs WHERE workspace_id = ? ORDER BY ts DESC LIMIT ?))',
-      [ws, cutoff, ws, maxLogs]
-    );
-    return loadLogs(cfg);
-  }
-
-  /** 清空请求访问日志(当前工作空间) */
-  async function clearLogs() {
-    await ensureMigrated();
-    const ws = await resolveWorkspace();
-    await db.run('DELETE FROM apihub_logs WHERE workspace_id = ?', [ws]);
-    return [];
-  }
+  /* ---------- 请求访问日志:异步批量写入器(自拆 hub-logs.js,红线 12) ---------- */
+  const logWriter = createLogWriter({
+    db,
+    ensureMigrated,
+    resolveWorkspace,
+    getCachedWs: function () {
+      return (stateCache && stateCache.value && stateCache.value.ws) || null;
+    },
+  });
 
 
 
@@ -299,7 +248,8 @@ function createHub(deps) {
     }
     if (!isPlainObject(secrets)) secrets = {};
     if (!isPlainObject(secrets.apiKeys)) secrets.apiKeys = {};
-    stateCache = { at: now, value: { config, secrets } };
+    // ws 随缓存一并返回:appendLog 等热路径直接复用,避免每请求重复查 activeWorkspace
+    stateCache = { at: now, value: { config, secrets, ws } };
     return stateCache.value;
   }
 
@@ -438,9 +388,10 @@ function createHub(deps) {
     saveAll,
     loadHistory,
     saveHistory,
-    loadLogs,
-    appendLog,
-    clearLogs,
+    loadLogs: logWriter.loadLogs,
+    appendLog: logWriter.appendLog,
+    flushLogs: logWriter.flushLogs,
+    clearLogs: logWriter.clearLogs,
     shouldLogRequest,
     isBotUa,
     clientIp,
