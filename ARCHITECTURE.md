@@ -267,7 +267,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 
 - `routes.js` 薄路由：只做参数校验、状态码映射与调用 service，不写 SQL、不碰加解密；
 - `service.js` 工厂（`createXxxService(deps)`）收拢依赖注入的 IO 编排（db / encrypt / decrypt 闭包）；
-- 无 IO 纯逻辑（常量 / 校验 / 清洗 / 策略计算）外移同目录兄弟文件供 service 与测试直接复用（实例：apihub 的 `hub-shared.js` / `hub-config.js`），文件间 require 关系保持单向；
+- 无 IO 纯逻辑（常量 / 校验 / 清洗 / 策略计算）外移同目录兄弟文件供 service 与测试直接复用（实例：apihub 的 `hub-shared.js` / `hub-config.js` / `hub-logs.js`），文件间 require 关系保持单向；
 - 错误约定：service 抛出带 `status` / `code` 的 Error，routes 统一捕获映射为 JSON 响应；
 - 对外导出面保持稳定：core/api 与测试只消费工厂与既定导出，拆分不改动任何调用方；
 - 拆分自检同 2.3.1 第 2 条（引用闭包含非调用形态、无孤儿、行为零变更、单文件 ≤500 行）。
@@ -282,7 +282,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 | `turso` | `server/db/adapters/turso.adapter.js` | Vercel、Deno 或远程部署 |
 | `d1` | `server/db/adapters/d1.adapter.js` | Cloudflare D1 或 D1 REST |
 
-所有适配器提供 `query(sql, params)`、`get(sql, params)`、`run(sql, params)` 与 `initSchema(schema)`。schema 位于 `server/db/schema.js`（唯一事实来源，`CREATE TABLE IF NOT EXISTS` 幂等），所有值使用参数绑定；业务 SQL 不允许字符串拼接参数。命令行脚本（`db:migrate` / `db:reset` / `db:seed`）经 `server/db/resolver.js`（`{ driver, db }` 薄封装）与 `server/db/migrate.js`（幂等 `ensureMigrated`）使用同一入口。
+所有适配器提供 `query(sql, params)`、`get(sql, params)`、`run(sql, params)`、`batch(statements)` 与 `initSchema(schema)`。`batch` 接收 `[{ sql, params }, …]` 并整体提交：sqlite 以事务包裹（失败整体回滚）、turso 复用 HTTP pipeline 单次往返、D1 binding 用原生 `binding.batch()`（REST 模式顺序逐条），用于 saveHistory / putSettings / login 等批量写入，避免远程数据库 N+1 往返。sqlite 适配器另对热路径 SQL 做预编译语句缓存（Map<sql, stmt>，上限 128）。schema 位于 `server/db/schema.js`（唯一事实来源，`CREATE TABLE IF NOT EXISTS` 幂等），所有值使用参数绑定；业务 SQL 不允许字符串拼接参数。命令行脚本（`db:migrate` / `db:reset` / `db:seed`）经 `server/db/resolver.js`（`{ driver, db }` 薄封装）与 `server/db/migrate.js`（幂等 `ensureMigrated`）使用同一入口。
 
 `app_settings` 使用 `(workspace_id, key)` 复合主键。`server/db/scope.js` 规定只有 `settings:workspaces` 和 `settings:activeWorkspace` 写入 `global`，其余设置按当前工作空间写入。API Hub 的 `apihub_config`、`apihub_history`、`apihub_logs` 也包含工作空间字段。
 
@@ -292,7 +292,7 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 
 ### 4.5 日志与静态资源
 
-`server/core/logging/logger.js` 提供服务端日志；API Hub 对请求历史和访问日志进行工作空间隔离、保留期和数量限制。`server/core/http/static.js` 只允许 `/`、`/index.html`、`/app/`、`/public/` 与 `/shared/`，并阻断目录穿越、数据库、环境文件和服务端源码暴露；公开资源提供 MIME、安全头、ETag 和缓存策略。
+`server/core/logging/logger.js` 提供服务端日志；API Hub 对请求历史和访问日志进行工作空间隔离、保留期和数量限制。请求访问日志经 `server/modules/apihub/hub-logs.js` 的写入器**异步批量落库**：先入内存队列，满 20 条或滞留 500ms 再批量写入，清理 DELETE 每 100 条执行一次——热路径每请求零阻塞 DB 往返；工作空间优先取 `loadAll` 的 TTL 缓存。`server/core/http/static.js` 只允许 `/`、`/index.html`、`/app/`、`/public/` 与 `/shared/`，并阻断目录穿越、数据库、环境文件和服务端源码暴露；公开资源提供 MIME、安全头、ETag、缓存策略，并对可压缩 MIME（文本/JS/CSS/JSON/SVG，≥512B）在客户端接受时返回 gzip（结果按 path:size:mtime 内存缓存，dev 改文件自动失效）。
 
 ### 4.6 敏感字段清单
 
@@ -307,9 +307,10 @@ Docs 和 Settings 的子模块使用 `sub/<id>.js` 并调用 `App.defineModule({
 ### 4.7 缓存分层
 
 - API JSON 响应统一 `Cache-Control: no-store`（`server/core/http/json.js`），避免会话数据被中间层缓存；
-- 静态资源按路径类型设置缓存策略（`server/core/http/static.js` 的 `cacheControl`，含 ETag 协商）；
+- 静态资源按路径类型设置缓存策略（`server/core/http/static.js` 的 `cacheControl`，含 ETag 协商），并对可压缩类型提供 gzip（见 4.5）；
 - 只读 `GET` 接口如需自定义缓存，须在路由层显式设置并说明理由，避免每次击穿到 DB；
-- API Hub 历史与访问日志有数量上限和保留期限制。
+- API Hub 配置/密钥经 `loadAll` 短 TTL 内存缓存（2s，`saveAll` 时显式失效），`handleApi` 每个请求都调用它但不再击穿 DB；活跃工作空间随缓存一并返回；
+- API Hub 历史与访问日志有数量上限和保留期限制，访问日志异步批量落库（见 4.5）。
 
 ## 5. 构建与体积预算
 
