@@ -27,7 +27,7 @@ function makeNodeRequest(request) {
   // Delay body consumption until the route handler has attached its data/end
   // listeners; otherwise a fast Request can resolve before readBody subscribes.
   setImmediate(() => {
-    Promise.resolve(request.text())
+    readCappedBody(request)
       .then((body) => {
         if (body) listeners.data.forEach((callback) => callback(body));
         listeners.end.forEach((callback) => callback());
@@ -36,6 +36,49 @@ function makeNodeRequest(request) {
   });
 
   return nodeRequest;
+}
+
+/** 请求体大小上限(与 readBody 一致,防止超大请求体被整段读入内存) */
+const MAX_BODY_BYTES = 1e6;
+
+/**
+ * 以流方式读取请求体并限制大小:超过上限即 cancel 底层流、
+ * 停止消费并 reject,避免超大请求体被 request.text() 整段缓冲。
+ * 兼容 Cloudflare / Deno / Vercel 原生 Request(不依赖 Buffer)。
+ */
+function readCappedBody(request) {
+  const declared = request.headers.get('content-length');
+  if (declared && Number(declared) > MAX_BODY_BYTES) {
+    return Promise.reject(new Error('body too large'));
+  }
+  const stream = request.body;
+  if (!stream) return Promise.resolve('');
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let text = '';
+  let size = 0;
+  return new Promise((resolve, reject) => {
+    function pump() {
+      reader
+        .read()
+        .then(({ done, value }) => {
+          if (done) {
+            resolve(text + decoder.decode());
+            return;
+          }
+          size += value.length;
+          if (size > MAX_BODY_BYTES) {
+            reader.cancel().catch(() => {}); // 停止消费,释放底层流
+            reject(new Error('body too large'));
+            return;
+          }
+          text += decoder.decode(value, { stream: true });
+          pump();
+        })
+        .catch(reject);
+    }
+    pump();
+  });
 }
 
 function makeNodeResponse() {
