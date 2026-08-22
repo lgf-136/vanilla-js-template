@@ -2,8 +2,11 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
+  pull_request:
   workflow_dispatch:
     inputs:
       ref:
@@ -22,7 +25,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || github.ref }}
+          # PR 事件检出 PR 头提交(而非自动生成的 merge commit,其信息永远无法
+          # 通过 Conventional Commits 校验);push/手动触发用 github.ref
+          ref: ${{ inputs.ref || (github.event.pull_request && github.event.pull_request.head.sha) || github.ref }}
 
       - name: Setup Node 22
         uses: actions/setup-node@v4
