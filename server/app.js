@@ -84,21 +84,54 @@ function readCappedBody(request) {
 function makeNodeResponse() {
   let status = 200;
   let headers = {};
-  let body = '';
+  let stream = null; // 首个 writeHead 时惰性创建,写入期间持续对外可读(SSE 流式)
+  let controller = null;
+  let encoder = new TextEncoder();
+  let ended = false;
   return {
     writeHead(nextStatus, nextHeaders) {
       status = nextStatus;
       headers = { ...headers, ...(nextHeaders || {}) };
       this.statusCode = nextStatus;
       this.headersSent = true;
+      if (!stream) {
+        stream = new ReadableStream({
+          start(c) {
+            controller = c;
+          },
+          cancel() {
+            ended = true;
+          },
+        });
+      }
+    },
+    /** 流式写块(SSE 等):适配器实时透传给客户端,不等整段响应完成 */
+    write(chunk) {
+      if (chunk == null) return;
+      if (!stream) this.writeHead(status, headers);
+      if (ended || !controller) return;
+      try {
+        controller.enqueue(encoder.encode(String(chunk)));
+      } catch (e) {
+        /* 流已关闭 */
+      }
     },
     end(nextBody) {
-      body = nextBody == null ? '' : nextBody;
+      if (nextBody != null) this.write(nextBody);
+      if (ended) return;
+      ended = true;
+      if (controller) {
+        try {
+          controller.close();
+        } catch (e) {
+          /* 流已关闭 */
+        }
+      }
     },
     statusCode: status,
     headersSent: false,
     toResponse() {
-      return new Response(body, { status, headers });
+      return new Response(stream || '', { status, headers });
     },
   };
 }

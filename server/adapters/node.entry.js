@@ -26,8 +26,30 @@ async function writeWebResponse(res, response) {
   res.statusCode = response.status;
   response.headers.forEach((value, key) => res.setHeader(key, value));
   if (res.req && res.req.method === 'HEAD') return res.end();
-  const body = await response.arrayBuffer();
-  res.end(Buffer.from(body));
+  const body = response.body;
+  // 流式响应(SSE 等):按背压逐块透传,保证客户端边生成边收到
+  if (body && typeof body.getReader === 'function') {
+    const reader = body.getReader();
+    const pump = async () => {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          res.end();
+          return;
+        }
+        if (!res.write(Buffer.from(value))) {
+          res.once('drain', pump);
+        } else {
+          pump();
+        }
+      } catch (e) {
+        res.end();
+      }
+    };
+    return pump();
+  }
+  const buffered = await response.arrayBuffer();
+  res.end(Buffer.from(buffered));
 }
 
 function startServer(port = Number(process.env.PORT) || 3000) {

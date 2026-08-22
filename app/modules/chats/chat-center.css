@@ -1,0 +1,269 @@
+/* ---------- 中栏(聊天主界面) ---------- */
+.ch-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+  background: var(--background);
+}
+.ch-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--spacing) * 2);
+  height: 3.25rem;
+  padding: 0 calc(var(--spacing) * 3);
+  border-bottom: 1px solid var(--border);
+}
+.ch-header-left {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1.5);
+  min-width: 0;
+}
+.ch-title-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 0;
+  text-align: left;
+}
+.ch-title-main {
+  max-width: 34rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.ch-title-sub {
+  max-width: 34rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+.ch-header-right {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1);
+}
+.ch-stop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1);
+  height: 2rem;
+  padding: 0 calc(var(--spacing) * 2.5);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--destructive);
+  background: color-mix(in oklab, var(--destructive) 10%, transparent);
+  border: 1px solid color-mix(in oklab, var(--destructive) 25%, transparent);
+}
+.ch-stop-btn:hover {
+  background: color-mix(in oklab, var(--destructive) 16%, transparent);
+}
+
+/* 消息区(唯一页面级滚动区) */
+.ch-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.ch-messages-inner {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: calc(var(--spacing) * 6) calc(var(--spacing) * 4) calc(var(--spacing) * 4);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 4);
+}
+.ch-stream-overlay {
+  position: absolute;
+  top: 3.25rem;
+  left: 0;
+  right: 0;
+  height: 2px;
+  pointer-events: none;
+  overflow: hidden;
+  background: transparent;
+}
+.ch-stream-overlay::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--primary) 60%, transparent);
+  animation: ch-indeterminate 1.2s ease-in-out infinite;
+}
+
+/* 欢迎空态 */
+.ch-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--spacing) * 2);
+  padding: calc(var(--spacing) * 16) calc(var(--spacing) * 4);
+  text-align: center;
+}
+.ch-welcome-ic {
+  display: inline-flex;
+  width: 3.5rem;
+  height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+.ch-welcome h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.ch-welcome p {
+  max-width: 26rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+/* 消息行与气泡 */
+.ch-msg {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 2);
+}
+.ch-msg-row {
+  display: flex;
+  gap: calc(var(--spacing) * 2.5);
+  align-items: flex-start;
+}
+.ch-msg-user .ch-msg-row {
+  flex-direction: row-reverse;
+}
+.ch-avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.ch-avatar-user {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.ch-avatar-ai {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.ch-msg-body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 1.5);
+  max-width: min(42rem, 86%);
+  min-width: 0;
+}
+.ch-msg-user .ch-msg-body {
+  align-items: flex-end;
+}
+.ch-bubble-user {
+  padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3.5);
+  border-radius: calc(var(--radius) * 1.4);
+  border-bottom-right-radius: 0.25rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ch-bubble-ai {
+  width: 100%;
+  padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3.5);
+  border-radius: calc(var(--radius) * 1.4);
+  border-bottom-left-radius: 0.25rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  word-break: break-word;
+}
+.ch-msg-actions {
+  display: flex;
+  gap: 0.125rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.ch-msg:hover .ch-msg-actions {
+  opacity: 1;
+}
+.ch-act-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  color: var(--muted-foreground);
+}
+.ch-act-btn:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ch-act-btn.is-on {
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+.ch-msg-time {
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+.ch-msg-error {
+  font-size: 0.75rem;
+  color: var(--destructive);
+}
+.ch-stopped {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+.ch-msg-att {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--spacing) * 1.5);
+}
+.ch-msg-img img {
+  max-height: 10rem;
+  max-width: 16rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  object-fit: cover;
+}
+.ch-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1);
+  height: 1.75rem;
+  padding: 0 calc(var(--spacing) * 2);
+  border-radius: 9999px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+.ch-file-size {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+

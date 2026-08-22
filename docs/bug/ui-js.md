@@ -218,3 +218,61 @@ ui.js 拆分时 `closeDropdowns` 未被保留在 App.ui 挂载面，tag-picker
 - **压缩/转译 HTML 时禁止折叠 `<script>` 内部空白**——哈希按字节计算;
 - 给静态文件加 CSP 哈希后,务必跑一次真实 build 并在 dist 产物上验证哈希一致性
   （源文件通过不代表产物通过）。
+
+## BUG-007: chats 模块事件域引用了不存在/未导出的下拉渲染函数,模块加载即抛 SyntaxError
+
+- 类型：ui-js（JS 运行时引用错误 / 模块格式不匹配）
+- 严重度：高
+- 发现时间：2026-08-22
+- 修复提交：（待提交）（feat(chats): 拆分超大文件并修复缺失导出）
+- 涉及文件：
+  - `app/modules/chats/chat-events.js`（修复前 import 清单）
+  - `app/modules/chats/chat-composer.js`（补 `thinkingDropdownHtml` + 导出下拉函数）
+  - `app/modules/chats/chat-right.js`（补导出下拉函数）
+- 涉及组件：chats 模块事件域 / 输入框 / 右栏（无 App.ui 公共组件）
+
+### 现象
+`#/chats` 模块懒加载时,动态 `import('./index.js')` 求值 `chat-events.js`
+即抛 `SyntaxError: The requested module ... does not provide an export named
+'...'`,整个聊天模块白屏且控制台无其他线索;本地开发(不经过 build)同样触发,
+因为问题出在源码 import 图上,与构建无关。
+
+### 根因
+拆分前的 `chat-events.js` 从兄弟文件 import 了**不存在或未导出**的名字:
+1. `import { ..., thinkingDropdownHtml, ... } from './chat-composer.js'` ——
+   `thinkingDropdownHtml` 在任何文件都不存在(输入框只有 `thinkingBtnHtml`
+   分段控件,顶栏按钮 `data-ch-act="thinking-dd"` 需要下拉却无对应渲染函数);
+2. `providerDropdownHtml / modelDropdownHtml / mcpDropdownHtml` 在
+   `chat-composer.js` 中是普通函数,未 `export`;
+3. `skillDropdownHtml / promptDropdownHtml / rightProviderDropdownHtml /
+   maxTokensDropdownHtml` 在 `chat-right.js` 中同样是未导出的普通函数。
+ESM 静态 import 的命名在**链接期**校验,缺任一导出即整棵 import 图求值失败;
+因为模块是懒加载,错误只在首次访问 `#/chats` 时出现。
+
+### 修复过程
+1. `chat-composer.js`:新增 `export function thinkingDropdownHtml()`,渲染
+   THINK_LEVELS(none/low/medium/high/max)下拉项(`data-ch-act="set-thinking"`,
+   当前档打勾);把 `providerDropdownHtml / modelDropdownHtml / mcpDropdownHtml`
+   补 `export`;
+2. `chat-right.js`:把 `skillDropdownHtml / promptDropdownHtml /
+   rightProviderDropdownHtml / maxTokensDropdownHtml` 补 `export`(拆分后经
+   `chat-right.js` re-export 保持 `chat-events` 引用面不变);
+3. 全部拆分完成后用 Node 模拟浏览器全局(`App`/`document` 桩)动态
+   `import('./app/modules/chats/index.js')` 验证整棵 import 图链接成功,
+   并确认 document 监听器注册齐全(click/contextmenu/input/keydown/paste/
+   change/mousedown/mousemove/mouseup)。
+
+### 验证
+- `node --test`（134/134）通过;
+- `node` 桩环境动态 import 模块入口成功,`App.defineModule` 被调用;
+- `npm run lint` / `i18n:check` / `deps:check` / `build` / `build:budget` 全绿;
+- 会话 CRUD / 配置+密钥加密落库的 API 冒烟测试通过。
+
+### 防坑指南
+- **懒加载 ESM 模块的 import 命名在链接期校验**——新增/重命名渲染函数时,
+  如果其他文件 import 了它,必须同步导出;用 `node --check` 只能查语法,
+  查不到链接错误,必须在桩环境下动态 `import()` 入口验证;
+- 输入框/右栏「下拉浮层」类渲染函数(供事件域 openDd 复用)必须 `export`,
+  不要在文件内留"仅本文件用"的非导出函数却被事件域引用;
+- 拆分超大文件时,先 grep 出该文件的全部外部 import 名,再对照目标文件的
+  export 清单做 diff,避免拆分过程中悄悄丢掉导出。

@@ -1,0 +1,100 @@
+/* ---------- 通用控件 ---------- */
+.ch-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  flex: none;
+}
+.ch-icon-btn:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ch-icon-btn.is-on {
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+.ch-icon-btn.is-danger:hover {
+  color: var(--destructive);
+}
+.ch-icon-btn.is-spinning {
+  color: var(--primary);
+  cursor: progress;
+}
+.ch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--spacing) * 1);
+  height: 2.25rem;
+  padding: 0 calc(var(--spacing) * 3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 0.8125rem;
+  color: var(--foreground);
+}
+.ch-btn:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ch-btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.ch-btn-primary:hover {
+  background: color-mix(in oklab, var(--primary) 85%, transparent);
+  color: var(--primary-foreground);
+}
+.ch-btn-danger {
+  color: var(--destructive);
+  border-color: color-mix(in oklab, var(--destructive) 30%, transparent);
+}
+.ch-btn-danger:hover {
+  background: color-mix(in oklab, var(--destructive) 10%, transparent);
+  color: var(--destructive);
+}
+.ch-btn-sm {
+  height: 1.875rem;
+  padding: 0 calc(var(--spacing) * 2);
+  font-size: 0.75rem;
+}
+.ch-input-sm {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 calc(var(--spacing) * 2);
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  outline: none;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.ch-input-sm:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 35%, transparent);
+}
+.ch-input-sm::placeholder {
+  color: var(--muted-foreground);
+}
+.ch-mono {
+  font-family: var(--default-mono-font-family, monospace);
+}
+.ch-spin {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  animation: ch-spin 0.8s linear infinite;
+}
+.ch-hidden-input {
+  display: none;
+}
+

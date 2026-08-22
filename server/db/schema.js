@@ -70,12 +70,47 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
   note       TEXT
 );`;
 
+/* ---------- Chats 聊天模块业务数据表(均含 workspace_id 列,不混入 app_settings) ---------- */
+
+/** Chats 模块配置表:每个工作空间一行,config 明文 / secrets 加密落库 */
+const CHAT_CONFIG_TABLE = `
+CREATE TABLE IF NOT EXISTS chat_config (
+  workspace_id TEXT PRIMARY KEY,
+  config       TEXT NOT NULL,
+  secrets      TEXT NOT NULL,
+  updated_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);`;
+
+/** Chats 会话表:messages JSON 整体内嵌,元数据独立列便于列表查询与排序 */
+const CHAT_CONVERSATIONS_TABLE = `
+CREATE TABLE IF NOT EXISTS chat_conversations (
+  id           TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  title        TEXT NOT NULL DEFAULT '',
+  group_id     TEXT NOT NULL DEFAULT '',
+  tag_ids      TEXT NOT NULL DEFAULT '[]',
+  favorite     INTEGER NOT NULL DEFAULT 0,
+  pinned       INTEGER NOT NULL DEFAULT 0,
+  archived     INTEGER NOT NULL DEFAULT 0,
+  provider     TEXT NOT NULL DEFAULT '',
+  model        TEXT NOT NULL DEFAULT '',
+  prompt_id    TEXT NOT NULL DEFAULT '',
+  skill_id     TEXT NOT NULL DEFAULT '',
+  params       TEXT NOT NULL DEFAULT '{}',
+  messages     TEXT NOT NULL DEFAULT '[]',
+  created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_chat_conversations_ws ON chat_conversations (workspace_id, updated_at);`;
+
 const SCHEMA =
   APP_SETTINGS_TABLE +
   AUTH_SESSIONS_TABLE +
   APIHUB_CONFIG_TABLE +
   APIHUB_HISTORY_TABLE +
-  APIHUB_LOGS_TABLE;
+  APIHUB_LOGS_TABLE +
+  CHAT_CONFIG_TABLE +
+  CHAT_CONVERSATIONS_TABLE;
 
 /** 旧版 app_settings(key 单主键,无 workspace_id)→ 新版(复合主键)迁移步骤 */
 const APP_SETTINGS_MIGRATION_SQL = [
@@ -114,6 +149,8 @@ module.exports = {
   APIHUB_CONFIG_TABLE,
   APIHUB_HISTORY_TABLE,
   APIHUB_LOGS_TABLE,
+  CHAT_CONFIG_TABLE,
+  CHAT_CONVERSATIONS_TABLE,
   APP_SETTINGS_MIGRATION_SQL,
   hasWorkspaceColumn,
   migrateAppSettings,

@@ -1,0 +1,42 @@
+/* ---------- 移动端(≤960px):抽屉 + 蒙版 ---------- */
+@media (max-width: 960px) {
+  .ch-left,
+  .ch-right {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 60;
+    display: flex;
+    border: none;
+    box-shadow: 0 20px 25px -5px color-mix(in oklab, var(--color-black) 30%, transparent);
+    transition: translate 0.18s ease;
+  }
+  .ch-left {
+    left: 0;
+    width: 17rem;
+    translate: -100% 0;
+    border-right: 1px solid var(--border);
+  }
+  .ch-left.is-open {
+    translate: 0 0;
+  }
+  .ch-right {
+    right: 0;
+    width: 20.25rem;
+    translate: 100% 0;
+    border-left: 1px solid var(--border);
+  }
+  .ch-right.is-open {
+    translate: 0 0;
+  }
+  .ch-messages-inner {
+    padding: calc(var(--spacing) * 4) calc(var(--spacing) * 3);
+  }
+  .ch-composer {
+    padding: 0 calc(var(--spacing) * 2) calc(var(--spacing) * 2);
+  }
+  .ch-title-main,
+  .ch-title-sub {
+    max-width: 14rem;
+  }
+}

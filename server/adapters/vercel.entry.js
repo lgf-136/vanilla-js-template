@@ -9,6 +9,17 @@ module.exports = async function vercelHandler(req, res) {
     res.statusCode = response.status;
     response.headers.forEach((value, key) => res.setHeader(key, value));
     if (req.method === 'HEAD') return res.end();
+    const body = response.body;
+    // 流式响应(SSE):Node Functions 直接透传块,避免整段缓冲丢失实时性
+    if (body && typeof body.getReader === 'function') {
+      const reader = body.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(Buffer.from(value));
+      }
+      return res.end();
+    }
     res.end(Buffer.from(await response.arrayBuffer()));
   } catch (error) {
     if (!res.headersSent) {

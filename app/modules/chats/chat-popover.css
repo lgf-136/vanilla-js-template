@@ -1,0 +1,310 @@
+/* ---------- 下拉浮层(chat-popover) ---------- */
+.ch-dd {
+  display: flex;
+  flex-direction: column;
+  max-height: min(26rem, 70vh);
+}
+.ch-dd-search {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1.5);
+  padding: calc(var(--spacing) * 2);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+.ch-dd-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  color: var(--foreground);
+}
+.ch-dd-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: calc(var(--spacing) * 1);
+}
+.ch-dd-label {
+  padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2) calc(var(--spacing) * 0.5);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.ch-dd-item {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1.5);
+  width: 100%;
+  padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  text-align: left;
+}
+.ch-dd-item:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ch-dd-item.is-on {
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+.ch-dd-ic {
+  flex: none;
+  display: inline-flex;
+  color: var(--muted-foreground);
+}
+.ch-dd-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ch-dd-hint {
+  flex: none;
+  font-size: 0.6875rem;
+  color: var(--chart-5);
+}
+.ch-dd-check {
+  flex: none;
+  display: inline-flex;
+  color: var(--primary);
+}
+.ch-dd-badge {
+  flex: none;
+  height: 1.125rem;
+  padding: 0 0.4375rem;
+  border-radius: 0.25rem;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 0.625rem;
+  line-height: 1rem;
+  color: var(--muted-foreground);
+  font-family: var(--default-mono-font-family, monospace);
+}
+.ch-dd-badge-off {
+  color: var(--chart-5);
+}
+.ch-dd-note {
+  padding: calc(var(--spacing) * 2);
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+.ch-dd-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--spacing) * 2);
+  padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2);
+  border-radius: var(--radius-md);
+}
+.ch-dd-switch-row:hover {
+  background: var(--accent);
+}
+.ch-dd-switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1.5);
+  min-width: 0;
+  font-size: 0.8125rem;
+}
+.ch-dd-sname {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 10rem;
+}
+.ch-dd-toolname {
+  font-family: var(--default-mono-font-family, monospace);
+  font-size: 0.75rem;
+}
+.ch-dd-empty {
+  padding: calc(var(--spacing) * 4) calc(var(--spacing) * 2);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+.ch-dd-foot {
+  display: flex;
+  gap: calc(var(--spacing) * 1);
+  padding: calc(var(--spacing) * 1.5);
+  border-top: 1px solid var(--border);
+}
+.ch-dd-action {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1);
+  flex: 1;
+  justify-content: center;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+.ch-dd-action:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ch-dd-num {
+  flex: none;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+
+/* ---------- 弹窗 ---------- */
+.ch-dlg-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.ch-dlg-desc {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+.ch-dlg-form {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 3);
+}
+.ch-dlg-field {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 1);
+}
+.ch-dlg-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.ch-dlg-textarea {
+  width: 100%;
+  min-height: 6rem;
+  padding: calc(var(--spacing) * 2);
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--foreground);
+  resize: vertical;
+  outline: none;
+}
+.ch-dlg-textarea:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 35%, transparent);
+}
+.ch-dlg-headers {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 1.5);
+}
+.ch-dlg-header-row {
+  display: flex;
+  gap: calc(var(--spacing) * 1);
+  align-items: center;
+}
+.ch-dlg-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 1);
+  max-height: 20rem;
+  overflow-y: auto;
+}
+.ch-dlg-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 2);
+  padding: calc(var(--spacing) * 2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.ch-dlg-row-ic {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.ch-dlg-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.ch-dlg-row-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ch-dlg-row-preview {
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ch-dlg-row-actions {
+  display: flex;
+  gap: 0.125rem;
+  flex: none;
+}
+.ch-dlg-empty {
+  padding: calc(var(--spacing) * 5);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+.ch-dlg-check {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1.5);
+  padding: calc(var(--spacing) * 1) 0;
+}
+.ch-dlg-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: transparent;
+}
+.ch-dlg-checkbox.is-on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+.ch-dlg-check-label {
+  font-size: 0.8125rem;
+}
+.ch-dlg-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  padding: calc(var(--spacing) * 1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+}
+.ch-dlg-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--spacing) * 1) 0;
+}
+

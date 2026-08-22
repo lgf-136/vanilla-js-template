@@ -1,0 +1,23 @@
+/* ---------- 动画 ---------- */
+@keyframes ch-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes ch-blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+@keyframes ch-indeterminate {
+  0% {
+    translate: -40% 0;
+  }
+  100% {
+    translate: 250% 0;
+  }
+}
+
