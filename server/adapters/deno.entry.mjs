@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url);
 const { handleRequest } = require('../app.js');
 const { MIME } = require('../core/http/mime.js');
 const { isPublicAsset } = require('../core/http/allowed.js');
+const { SECURITY_HEADERS } = require('../core/http/headers.js');
 const ROOT = new URL('../../', import.meta.url);
 
 function envObject() {
@@ -24,6 +25,7 @@ async function staticResponse(request, pathname) {
     return new Response(data, {
       status: 200,
       headers: {
+        ...SECURITY_HEADERS,
         'Content-Type': MIME[extname(filePath).toLowerCase()] || 'application/octet-stream',
         'Cache-Control': pathname === '/' || pathname === '/index.html' ? 'no-store' : 'public, no-cache',
       },
