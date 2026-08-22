@@ -83,61 +83,64 @@ function serveStatic(req, res, pathname, root) {
     );
     return res.end('Forbidden');
   }
+  // 单次 stat:普通文件直接处理;仅目录命中时才二次 stat 取 index.html
   fs.stat(filePath, (err, st) => {
     if (!err && st.isDirectory()) {
       filePath = path.join(filePath, 'index.html');
-    }
-    // 二次 stat 拿到真实文件(目录→index.html 后)的 mtime/size
-    fs.stat(filePath, (err2, st2) => {
-      if (err2 || !st2.isFile()) {
-        res.writeHead(
-          404,
-          Object.assign({ 'Content-Type': 'text/plain; charset=utf-8' }, SECURITY_HEADERS)
-        );
-        return res.end('Not Found');
-      }
-      const contentType = MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
-      const headers = Object.assign(
-        {
-          'Content-Type': contentType,
-          'Cache-Control': cacheControl(pathname),
-          ETag: etag(st2),
-          'Last-Modified': new Date(st2.mtimeMs).toUTCString(),
-        },
-        SECURITY_HEADERS
-      );
-      const inm = req.headers['if-none-match'];
-      if (
-        inm &&
-        String(inm)
-          .split(',')
-          .some(function (t) {
-            return t.trim() === headers['ETag'];
-          })
-      ) {
-        res.writeHead(304, headers);
-        return res.end();
-      }
-      fs.readFile(filePath, (err3, data) => {
-        if (err3) {
-          res.writeHead(
-            404,
-            Object.assign({ 'Content-Type': 'text/plain; charset=utf-8' }, SECURITY_HEADERS)
-          );
-          return res.end('Not Found');
-        }
-        // gzip:命中可压缩 MIME + 客户端接受时压缩返回(带 Vary,弱 ETag 语义兼容)
-        if (shouldGzip(contentType, st2.size, req.headers['accept-encoding'])) {
-          headers['Content-Encoding'] = 'gzip';
-          headers['Vary'] = 'Accept-Encoding';
-          res.writeHead(200, headers);
-          return res.end(gzipWithCache(filePath, st2.mtimeMs, st2.size, data));
-        }
-        res.writeHead(200, headers);
-        res.end(data);
+      fs.stat(filePath, (err2, st2) => {
+        if (err2 || !st2.isFile()) return send404();
+        serveFile(st2);
       });
-    });
+      return;
+    }
+    if (err || !st.isFile()) return send404();
+    serveFile(st);
   });
+
+  function send404() {
+    res.writeHead(
+      404,
+      Object.assign({ 'Content-Type': 'text/plain; charset=utf-8' }, SECURITY_HEADERS)
+    );
+    res.end('Not Found');
+  }
+
+  function serveFile(st2) {
+    const contentType = MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
+    const headers = Object.assign(
+      {
+        'Content-Type': contentType,
+        'Cache-Control': cacheControl(pathname),
+        ETag: etag(st2),
+        'Last-Modified': new Date(st2.mtimeMs).toUTCString(),
+      },
+      SECURITY_HEADERS
+    );
+    const inm = req.headers['if-none-match'];
+    if (
+      inm &&
+      String(inm)
+        .split(',')
+        .some(function (t) {
+          return t.trim() === headers['ETag'];
+        })
+    ) {
+      res.writeHead(304, headers);
+      return res.end();
+    }
+    fs.readFile(filePath, (err3, data) => {
+      if (err3) return send404();
+      // gzip:命中可压缩 MIME + 客户端接受时压缩返回(带 Vary,弱 ETag 语义兼容)
+      if (shouldGzip(contentType, st2.size, req.headers['accept-encoding'])) {
+        headers['Content-Encoding'] = 'gzip';
+        headers['Vary'] = 'Accept-Encoding';
+        res.writeHead(200, headers);
+        return res.end(gzipWithCache(filePath, st2.mtimeMs, st2.size, data));
+      }
+      res.writeHead(200, headers);
+      res.end(data);
+    });
+  }
 }
 
 module.exports = { serveStatic, acceptsGzip, shouldGzip, etag, cacheControl };
