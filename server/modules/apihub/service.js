@@ -274,18 +274,33 @@ function createHub(deps) {
 
 
 
-  /** 读全量状态:config + secrets(secrets 解密失败回退 {};按当前工作空间) */
+  /**
+   * 读全量状态:config + secrets(secrets 解密失败回退 {};按当前工作空间)。
+   * 短 TTL 内存缓存:handleApi 对每个 API 请求(含 Hub 代理转发)都调用本方法,
+   * 避免每次都击穿 DB;saveAll 时显式失效;工作空间切换在 TTL 内(2s)生效。
+   * 解密失败显式降级为空 secrets,且不缓存失败态,下次请求重试。
+   */
+  let stateCache = null; // { at, value }
+  const STATE_TTL_MS = 2000;
   async function loadAll() {
+    const now = Date.now();
+    if (stateCache && now - stateCache.at < STATE_TTL_MS) return stateCache.value;
     await ensureMigrated();
     const ws = await resolveWorkspace();
     const row = await db.get('SELECT config, secrets FROM apihub_config WHERE workspace_id = ?', [ws]);
     let config = parseJson(row && row.config, null);
     if (!config || !isPlainObject(config)) config = defaultConfig();
     config = normalizeConfig(config);
-    const secrets = row && row.secrets ? parseJson(decrypt(row.secrets), {}) : {};
-    if (!isPlainObject(secrets)) return { config, secrets: {} };
+    let secrets;
+    try {
+      secrets = row && row.secrets ? parseJson(decrypt(row.secrets), {}) : {};
+    } catch (e) {
+      secrets = {};
+    }
+    if (!isPlainObject(secrets)) secrets = {};
     if (!isPlainObject(secrets.apiKeys)) secrets.apiKeys = {};
-    return { config, secrets };
+    stateCache = { at: now, value: { config, secrets } };
+    return stateCache.value;
   }
 
 
@@ -404,6 +419,7 @@ function createHub(deps) {
       'INSERT INTO apihub_config (workspace_id, config, secrets, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(workspace_id) DO UPDATE SET config = excluded.config, secrets = excluded.secrets, updated_at = excluded.updated_at',
       [ws, JSON.stringify(cfg), encrypt(JSON.stringify(cleanSecrets)), new Date().toISOString()]
     );
+    stateCache = null; // 配置变更后立即失效 loadAll 缓存
     return { config: cfg, secrets: cleanSecrets };
   }
 

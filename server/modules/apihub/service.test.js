@@ -178,3 +178,24 @@ test('saveAll → loadAll 往返:配置规范化保留,密文经 encrypt 落库�
   assert.equal(state.config.routes['GET /api/tools/ping'].public, true);
   assert.equal(state.secrets.apiKeys['GET /api/x'], 'secret-key');
 });
+
+test('loadAll: 短 TTL 缓存命中;saveAll 后立即失效取新值', async () => {
+  const db = makeDb();
+  const hub = createHub(makeDeps(db));
+  await hub.saveAll({ config: { routes: {} }, secrets: { apiKeys: { k: 'v1' } } });
+
+  // 首次读取进入缓存
+  const first = await hub.loadAll();
+  assert.equal(first.secrets.apiKeys.k, 'v1');
+
+  // 缓存期内直接改 db(模拟外部写入),loadAll 应命中缓存不感知
+  const [stored] = [...db.rows.values()];
+  db.rows.set('ws-default', { config: stored.config, secrets: stored.secrets });
+  const cached = await hub.loadAll();
+  assert.equal(cached.secrets.apiKeys.k, 'v1');
+
+  // saveAll 后缓存失效,必须读到新值
+  await hub.saveAll({ config: { routes: {} }, secrets: { apiKeys: { k: 'v2' } } });
+  const after = await hub.loadAll();
+  assert.equal(after.secrets.apiKeys.k, 'v2');
+});
