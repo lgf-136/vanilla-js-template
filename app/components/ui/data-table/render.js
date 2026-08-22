@@ -173,7 +173,19 @@ import { bulkBarHtml, paginationHtml } from './parts.js';
     return toolbarHtml(inst, t) + tableHtml(inst, t) + paginationHtml(inst, t) + bulkBarHtml(inst, t);
   }
 
+  /* 同一帧内多次状态变更合并为一次重绘:勾选/输入等高频操作不再每次
+   * 全量重建整表(此前连点 N 行 = N 次 innerHTML 全量重建,O(n²))。
+   * 帧末渲染语义不变;无 rAF 环境(测试)回退同步。 */
+  var pendingRerenders = new Set();
+
   export function rerender(inst) {
-    var root = document.querySelector('[data-dt-id="' + inst.id + '"]');
-    if (root && inst.t) root.innerHTML = render(inst, inst.t);
+    if (pendingRerenders.has(inst)) return;
+    pendingRerenders.add(inst);
+    var doRender = function () {
+      pendingRerenders.delete(inst);
+      var root = document.querySelector('[data-dt-id="' + inst.id + '"]');
+      if (root && inst.t) root.innerHTML = render(inst, inst.t);
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(doRender);
+    else doRender();
   }
